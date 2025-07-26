@@ -1,0 +1,20 @@
+On branch main
+Your branch is up to date with 'xiaoxishui/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   "\345\244\207\344\273\275\344\275\277\347\224\250\346\214\207\345\215\227.md"
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   backup_scripts/backup.sh
+	modified:   backup_scripts/manage_backups.sh
+	modified:   backup_scripts/quick_backup.sh
+	modified:   backup_scripts/restore.sh
+	modified:   backup_scripts/test_backup.sh
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	backups/
+

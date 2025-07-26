@@ -1,0 +1,19 @@
+Dify项目备份信息
+================
+
+备份时间: Sat Jul 26 10:39:52 CST 2025
+备份名称: dify_backup_20250726_103952
+备份目录: /home/dify/backups/dify_backup_20250726_103952
+
+备份内容:
+- 数据库: dify_database.sql
+- 存储数据: app_storage.tar.gz
+- 配置文件: .env, docker-compose.yaml
+- 代码状态: Git状态和差异
+
+系统信息:
+- 操作系统: Linux iZn4a449mnj27q04vf6yqsZ 4.18.0-348.7.1.el8_5.x86_64 #1 SMP Wed Dec 22 13:25:12 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+- Docker版本: Docker version 26.1.3, build b72abbb
+- 磁盘使用: /dev/vda3       100G   57G   44G  57% /
+
+备份命令: ./backup_scripts/backup.sh

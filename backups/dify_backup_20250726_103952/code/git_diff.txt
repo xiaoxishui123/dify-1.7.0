@@ -1,0 +1,15 @@
+diff --git a/backup_scripts/backup.sh b/backup_scripts/backup.sh
+old mode 100644
+new mode 100755
+diff --git a/backup_scripts/manage_backups.sh b/backup_scripts/manage_backups.sh
+old mode 100644
+new mode 100755
+diff --git a/backup_scripts/quick_backup.sh b/backup_scripts/quick_backup.sh
+old mode 100644
+new mode 100755
+diff --git a/backup_scripts/restore.sh b/backup_scripts/restore.sh
+old mode 100644
+new mode 100755
+diff --git a/backup_scripts/test_backup.sh b/backup_scripts/test_backup.sh
+old mode 100644
+new mode 100755
