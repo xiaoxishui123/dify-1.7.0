@@ -138,17 +138,76 @@ EXPOSE_NGINX_PORT=8080
 
 ## 数据备份
 
-### 数据库备份
+本项目提供了完整的备份和恢复系统，用于保护您的数据安全。
+
+### 备份系统功能
+
+- **完整备份**: 备份数据库、存储数据、配置文件、代码状态
+- **快速备份**: 快速备份核心数据
+- **自动恢复**: 一键恢复所有数据
+- **备份管理**: 查看、删除、清理备份文件
+
+### 使用方法
+
+#### 1. 测试备份系统
 ```bash
-cd /home/dify/docker
-docker compose exec db pg_dump -U postgres dify > backup.sql
+# 测试备份系统是否正常工作
+./backup_scripts/test_backup.sh
 ```
 
-### 文件存储备份
+#### 2. 创建完整备份
 ```bash
-cd /home/dify/docker
-tar -czf storage_backup.tar.gz volumes/
+# 创建完整备份（推荐在升级前使用）
+./backup_scripts/backup.sh
 ```
+
+#### 3. 创建快速备份
+```bash
+# 创建快速备份（推荐在修改代码前使用）
+./backup_scripts/quick_backup.sh
+```
+
+#### 4. 从备份恢复
+```bash
+# 从指定备份恢复数据
+./backup_scripts/restore.sh <备份目录名>
+# 示例: ./backup_scripts/restore.sh dify_backup_20250725_143000
+```
+
+#### 5. 管理备份文件
+```bash
+# 查看所有备份
+./backup_scripts/manage_backups.sh list
+
+# 查看备份详细信息
+./backup_scripts/manage_backups.sh info <备份名>
+
+# 删除指定备份
+./backup_scripts/manage_backups.sh delete <备份名>
+
+# 清理旧备份（保留最近5个）
+./backup_scripts/manage_backups.sh cleanup 5
+
+# 查看备份总大小
+./backup_scripts/manage_backups.sh size
+```
+
+### 备份策略建议
+
+- **升级前**: 必须进行完整备份
+- **修改代码前**: 建议进行快速备份
+- **定期备份**: 建议每周进行一次完整备份
+- **自动备份**: 可设置定时任务自动备份
+
+### 备份位置
+
+- **备份目录**: `/home/dify/backups/`
+- **备份内容**: 数据库、存储文件、配置文件、代码状态
+- **备份格式**: 带时间戳的目录结构
+
+### 详细说明
+
+更多详细信息请查看: [backup_scripts/README.md](backup_scripts/README.md)
 
 ## 故障排除
 
