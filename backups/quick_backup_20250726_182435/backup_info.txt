@@ -1,0 +1,12 @@
+快速备份信息
+=============
+
+备份时间: Sat Jul 26 18:24:36 CST 2025
+备份类型: 快速备份
+备份目录: /home/dify/backups/quick_backup_20250726_182435
+
+备份内容:
+- 数据库: database.sql
+- 配置文件: .env
+- 存储数据: storage.tar.gz
+
