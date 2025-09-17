@@ -2279,6 +2279,130 @@ tool_node_template:
     y: {Y坐标}
 ```
 
+#### 5.2.3 工作流节点参数表（对齐3.2）
+
+说明：以下仅列核心节点的关键参数与默认值，命名统一为 snake_case；优先级：节点参数 > 环境变量 > 默认值。所有时间单位默认秒，百分比以 0~1 浮点表示。
+
+- 节点1：start_optimized（开始/全局输入）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| topic | string | - | 视频主题（用户输入） |
+| tone | string | friendly | 表达语气（友好/专业等） |
+| duration_sec | number | 60 | 目标成片时长（15~180） |
+| aspect_ratio | enum | 9:16 | 画幅（9:16/16:9/1:1） |
+| language | enum | zh-CN | 语言（zh-CN/en-US） |
+| target_platform | enum | douyin | 投放平台（douyin/kuaishou/bilibili/xiaohongshu） |
+| voice_type | string | female_1 | TTS音色 |
+| voice_speed | number | 1.0 | TTS语速（0.8~1.2） |
+| voice_pitch | number | 0 | TTS音高（-12~+12 半音） |
+| master_clock_mode | enum | voice | 主时钟：voice（语音为主）/video（视频为主） |
+| preserve_user_video_duration | bool | false | 当用户视频存在时，优先保持其原时长为主时钟 |
+| tts_chunk_max_sec | number | 12 | TTS分片最大时长（用于长文旁白切片） |
+| tts_chunk_overlap_sec | number | 0.12 | TTS分片重叠时长（平滑拼接） |
+| bgm_ducking_enable | bool | true | 旁白区间压低BGM |
+| bgm_ducking_db | number | -6 | 压低分贝值（dB） |
+| subtitle_auto_tune | bool | true | 字幕自动微调对齐语音 |
+| lock_tts_speed | bool | true | 锁定语速，避免分片速度漂移 |
+| timing_tolerance_segment | number | 0.2 | 段内对齐容差（±秒） |
+| timing_tolerance_total | number | 0.3 | 全片级容差（±秒） |
+
+- 节点2：llm_generate_storyboard（智能分镜生成）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| topic | string | - | 透传自 start_optimized |
+| tone | string | friendly | 同上 |
+| duration_sec | number | 60 | 同上 |
+| aspect_ratio | enum | 9:16 | 同上 |
+| language | enum | zh-CN | 同上 |
+| target_platform | enum | douyin | 同上 |
+| prompt_template | array | - | 提示模板（system/user 两段） |
+
+输出：storyboard（分镜文本/结构化段落）、segments（片段拆分）
+
+- 节点3：code_parse_storyboard（解析分镜）
+
+输入：storyboard
+
+输出：
+- assets_plan：素材计划（需生成/需搜集）
+- subtitle_segments：字幕片段
+
+- 节点4：iteration_generate_assets（循环生成素材）
+
+输入：assets_plan；并行度由 MAX_CONCURRENCY 控制（可在节点内设上限）。
+
+输出：shot_assets（生成好的图片/视频/音频等的引用集合）
+
+- 节点5：http_add_timeline_assets（批量入轨）
+
+输入：timeline_items（数组），单项结构：
+```json
+{
+  "type": "video|image|audio|subtitle",
+  "track": "main|overlay|audio|subtitle",
+  "startMs": 1200,
+  "durationMs": 3400,
+  "srcRefId": "asset_abc",
+  "transforms": {"trim": [0, 3.4], "speed": 1.0, "volume": 0.8, "fade": {"in": 0.2, "out": 0.2}}
+}
+```
+输出：timeline_id、clip_count
+
+- 节点6：tool_tts_synthesis（语音合成）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| text | string/array | - | 自动基于分镜切片（结合 tts_chunk_*） |
+| voice_type | string | female_1 | 音色 |
+| voice_speed | number | 1.0 | 语速 |
+| voice_pitch | number | 0 | 音高 |
+| sample_rate | number | 24000 | 采样率 |
+| format | enum | mp3 | 输出格式（mp3/wav/aac） |
+| timeout | number | 20 | 超时秒数（TTS_TIMEOUT_SEC） |
+
+输出：audio_segments（含 url/duration_sec/format/sample_rate）
+
+- 节点7：http_add_bgm（添加BGM）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| bgm_url | string | - | BGM资源地址 |
+| ducking_enable | bool | true | 是否在旁白区间压低 |
+| ducking_db | number | -6 | 压低分贝 |
+
+- 节点8：code_validate_timeline（校验时间轴）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| master_clock_mode | enum | voice | voice/video |
+| preserve_user_video_duration | bool | false | 是否保持用户视频为主时钟 |
+| subtitle_auto_tune | bool | true | 自动微调字幕 |
+| timing_tolerance_segment | number | 0.2 | 段内容差 |
+| timing_tolerance_total | number | 0.3 | 全片容差 |
+
+输出：ok（bool）、hints（array）
+
+- 节点9：render（http_render_video 或 /mcp/save_draft）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---:|---|
+| resolution | enum | 1080x1920 | 1080x1920/1920x1080/1080x1080 |
+| codec | enum | H264 | H264/H265 |
+| fps | number | 30 | 帧率 |
+| bitrate_mode | enum | auto | auto/medium/high |
+| timeout | number | 240 | 渲染超时（RENDER_TIMEOUT_SEC） |
+
+输出：video_url（若HTTP渲染）或 draft_path（若MCP草稿）、thumbnail_url、duration_sec、size_mb、render_task_id（可选）
+
+- 节点10：http_generate_download_link（生成下载链接）
+
+输入：video_url/draft_path；输出：稳定可访问 URL（带有效期/权限）。
+
+> 其余节点（如 user_video、t2i/i2v/t2v、collect 等）沿用相同规范：输入/输出显式、参数有类型与默认值、错误码与重试策略引用 5.5 与 3.2 重试矩阵。
+
+
 ### 5.3 MCP 集成方案
 
 #### 5.3.1 集成目标与范围
@@ -2349,6 +2473,34 @@ POST /mcp/save_draft
 BODY: { "draft_id": "xxx" }
 RET:  { "ok": true, "draft_path": "/home/CapCutAPI-1.1.0/dfd_xxx" }
 ```
+
+##### 5.3.4.1 通信参数表（Bridge/HTTP 对齐）
+
+- 标准参数（适用于 MCP Bridge 与 HTTP 降级节点）：
+  - base_url：由环境变量注入（CAPCUT_MCP_BRIDGE_BASE / CAPCUT_HTTP_BASE）
+  - timeout_sec：默认 20（TTS）、240（渲染）、10（素材/时间轴写入）；节点可覆盖
+  - retries：默认 2；指数退避（RETRY_BACKOFF_MS，默认800ms，翻倍至上限）
+  - idempotency_key：写操作强烈建议携带（X-Idempotency-Key），以保障重试安全
+  - concurrency_limit：3–5（Bridge维度），单节点可再限流
+  - headers：X-Api-Key、X-Idempotency-Key、Content-Type=application/json
+  - payload_limit_mb：请求≤5MB（素材走URL，避免大包）
+  - response_schema：成功体含 ok/draft_id/clip_id/video_url 等，错误体见 5.3.4
+  - error_mapping：将上游错误归一化到 5.5 错误码与结构
+  - circuit_breaker：同能力维度（draft.create/asset.register/timeline.batch/render.submit），错误率与超时双阈值
+  - healthcheck：GET /health（Bridge 可选），失败时降级 HTTP
+
+- 端点级参数覆盖（示例）：
+  - /mcp/create_draft：timeout_sec=15，retries=2，retryable=true
+  - /mcp/add_video：timeout_sec=20，retries=2，幂等必填
+  - /mcp/save_draft：timeout_sec=30，retries=1，失败可提示用户手动重试
+  - 渲染HTTP：timeout_sec=RENDER_TIMEOUT_SEC（默认240），retries=1，失败转“仅保存草稿（MCP）”
+
+- 返回值字段（汇总，按端点择一返回）：
+  - ok（bool）、draft_id、draft_path、clip_id、video_url、thumbnail_url、duration_sec、size_mb、render_task_id、trace_id
+
+- 观测点（与 5.7 一致）：
+  - mcp.http.request、mcp.http.response、mcp.error、mcp.retry；字段至少含 trace_id、node_id、endpoint、status、latency_ms、retry_count
+
 
 #### 5.3.5 部署与运维
 
