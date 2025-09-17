@@ -476,67 +476,86 @@ graph TD
     %% 先行草稿（可并行解耦后续登记）
     C --> DRAFT_INIT[创建项目草稿（MCP优先，HTTP降级）]
 
-    %% 并行启动视觉和音频素材生成
-    C --> R1{类型路由}
-    C --> AUDIO_START[音频素材并行启动<br/>📋TTS+BGM+字幕]
+    %% 并行启动音频素材生成
+    C --> AUDIO_START[音频素材并行启动<br/>📋TTS+字幕]
 
-    %% 视觉素材路径
-    R1 -->|文生图像| T2I[文生图]
-    T2I --> R3{是否图转视频}
-    R3 -->|是| I2V_FROM_IMG[图转视频]
-    R3 -->|否| OUT_T2I[生成结果]
-    R1 -->|文生视频| T2V[文生视频]
-    T2V --> OUT_T2V[生成结果]
-    R1 -->|图生视频| R2{是否有用户视频}
-    R2 -->|是| UV[用户视频]
-    R2 -->|否| I2V[图转视频]
-    UV --> OUT_UV[生成结果]
-    I2V --> OUT_I2V[生成结果]
-    I2V_FROM_IMG --> OUT_I2V_IMG[生成结果]
+    %% 第一层：素材来源分类
+    C --> SOURCE_ROUTE{素材来源路由}
+    
+    %% 用户提供分支
+    SOURCE_ROUTE -->|用户提供| USER_BRANCH{用户素材类型}
+    USER_BRANCH -->|图片| USER_IMG[用户图片]
+    USER_BRANCH -->|视频| USER_VIDEO[用户视频]
+    USER_BRANCH -->|BGM音频| USER_BGM[用户BGM]
+    
+    %% AI生成分支  
+    SOURCE_ROUTE -->|AI生成| AI_BRANCH{AI生成类型}
+    AI_BRANCH -->|文生图像| AI_T2I[文生图]
+    AI_BRANCH -->|文生视频| AI_T2V[文生视频]
+    AI_BRANCH -->|图生视频| AI_I2V[图生视频]
+    
+    %% BGM搜索插件分支
+    SOURCE_ROUTE -->|BGM搜索| BGM_SEARCH[BGM搜索插件<br/>📋关键词/风格/情绪搜索]
+    
+    %% 用户分支处理
+    USER_IMG --> IMG_TO_VIDEO_PROC{图转视频处理}
+    USER_VIDEO --> MATERIAL_SYNC
+    USER_BGM --> MATERIAL_SYNC
+    
+    %% AI分支处理
+    AI_T2I --> IMG_TO_VIDEO_PROC
+    AI_T2V --> MATERIAL_SYNC
+    AI_I2V --> MATERIAL_SYNC
+    
+    %% BGM搜索插件分支处理
+    BGM_SEARCH --> MATERIAL_SYNC
 
-    %% 音频素材路径
+    %% 统一图转视频处理
+    IMG_TO_VIDEO_PROC -->|转视频| I2V_PROCESS[图转视频]
+    IMG_TO_VIDEO_PROC -->|保持图片| MATERIAL_SYNC
+    I2V_PROCESS --> MATERIAL_SYNC
+
+    %% 音频素材路径（TTS和字幕）
     AUDIO_START --> TTS_GEN[TTS语音合成<br/>📋并行处理]
-    AUDIO_START --> BGM_GEN[BGM素材准备<br/>📋并行处理]
     AUDIO_START --> SUB_GEN[字幕生成<br/>📋并行处理]
 
     %% 素材收敛点（登记至草稿）
-    OUT_T2I --> E[素材收敛-并行上传与登记<br/>登记到草稿：MCP优先，HTTP降级]
-    OUT_T2V --> E
-    OUT_UV --> E
-    OUT_I2V --> E
-    OUT_I2V_IMG --> E
-    TTS_GEN --> E
-    BGM_GEN --> E
-    SUB_GEN --> E
+    TTS_GEN --> MATERIAL_SYNC[素材收敛-并行上传与登记<br/>登记到草稿：MCP优先，HTTP降级]
+    SUB_GEN --> MATERIAL_SYNC
 
     %% 草稿校验与补全
-    DRAFT_INIT --> E
-    E --> F[草稿校验与项目元数据补全]
+    DRAFT_INIT --> MATERIAL_SYNC
+    MATERIAL_SYNC --> DRAFT_CHECK[草稿校验与项目元数据补全]
 
     %% 时间轴装配与音频策略
-    F --> G[时间轴装配-批量<br/>装配操作：MCP优先，失败降级HTTP]
-    G --> H{音频与字幕策略<br/>🎵默认语音为主时钟}
-    H -->|旁白-是| I[混音处理-使用预生成TTS<br/>📝可含预准备BGM]
-    H -->|旁白-否| J[可选BGM上轨<br/>🎵无旁白时BGM为主时钟]
-    I --> K[字幕对齐-使用预生成字幕<br/>📝严格贴合最终音频时间戳]
-    J --> K
+    DRAFT_CHECK --> TIMELINE_ASSEMBLY[时间轴装配-批量<br/>装配操作：MCP优先，失败降级HTTP]
+    TIMELINE_ASSEMBLY --> AUDIO_STRATEGY{音频与字幕策略<br/>🎵默认语音为主时钟}
+    AUDIO_STRATEGY -->|旁白-是| AUDIO_MIX[混音处理-使用预生成TTS<br/>📝可含预准备BGM]
+    AUDIO_STRATEGY -->|旁白-否| BGM_ONLY[可选BGM上轨<br/>🎵无旁白时BGM为主时钟]
+    AUDIO_MIX --> SUBTITLE_ALIGN[字幕对齐-使用预生成字幕<br/>📝严格贴合最终音频时间戳]
+    BGM_ONLY --> SUBTITLE_ALIGN
 
     %% 渲染提交与结果
-    K --> L[渲染提交<br/>HTTP云端优先；失败降级为保存草稿（MCP）]
-    L --> M[生成下载链接]
-    M --> N[返回结果]
+    SUBTITLE_ALIGN --> RENDER_SUBMIT[渲染提交<br/>HTTP云端优先；失败降级为保存草稿（MCP）]
+    RENDER_SUBMIT --> DOWNLOAD_LINK[生成下载链接]
+    DOWNLOAD_LINK --> FINAL_RESULT[返回结果]
 ```
 
 **图注说明（更新）：**
-- ⚡ 并行：视觉与音频素材在生成与登记阶段并行，降低总耗时
-- 🗂 草稿优先：创建项目草稿前置，素材“登记到草稿”默认走 MCP，失败降级为 HTTP
-- 🔧 装配策略：时间轴装配默认走 MCP 工程操作，失败降级为 HTTP 参数装配
-- ☁ 渲染策略：渲染提交默认云端 HTTP，失败降级为“仅保存草稿（MCP）”，避免流程全失败
-- 🩺 健康检查：对 MCP 和 HTTP 通道进行健康检查与熔断，支持按错误类型分级重试
-- 🎵 主时钟：默认语音为主时钟；无旁白时 BGM 为主时钟（参见 5.1.3 音频对齐线）
-- 📝 字幕对齐：字幕严格贴合最终音频时间戳，使用预生成字幕避免重复计算
-- 📋 预生成复用：TTS、BGM、字幕在早期并行生成，后续混音和对齐时直接使用
-- 📖 参考：音频对齐线（Audio Master Clock）详见 5.1.3 节
+- 🎯 **素材来源优先分类**：第一层按来源分类（用户提供 vs AI生成 vs BGM搜索），避免混合处理逻辑
+- 👤 **用户素材简化处理**：用户提供的视频/BGM直接进入素材收敛，图片统一进入图转视频处理
+- 🤖 **AI生成分支优化**：AI生成的视频类素材直接收敛，图片类统一进入图转视频处理
+- 🎵 **BGM搜索插件统一**：单一BGM搜索节点集成关键词、风格、情绪等多维度搜索功能
+- 🔄 **图转视频统一处理**：所有图片素材（用户/AI）统一通过一个图转视频处理节点，减少重复逻辑
+- ⚡ **并行优化**：视觉与音频素材在生成与登记阶段并行，降低总耗时
+- 🗂 **草稿优先**：创建项目草稿前置，素材"登记到草稿"默认走 MCP，失败降级为 HTTP
+- 🔧 **装配策略**：时间轴装配默认走 MCP 工程操作，失败降级为 HTTP 参数装配
+- ☁ **渲染策略**：渲染提交默认云端 HTTP，失败降级为"仅保存草稿（MCP）"，避免流程全失败
+- 🩺 **健康检查**：对 MCP 和 HTTP 通道进行健康检查与熔断，支持按错误类型分级重试
+- 🎵 **主时钟**：默认语音为主时钟；无旁白时 BGM 为主时钟（参见 5.1.3 音频对齐线）
+- 📝 **字幕对齐**：字幕严格贴合最终音频时间戳，使用预生成字幕避免重复计算
+- 📋 **预生成复用**：TTS、BGM、字幕在早期并行生成，后续混音和对齐时直接使用
+- 📖 **参考**：音频对齐线（Audio Master Clock）详见 5.1.3 节
 
 渲染视频环节（细化）：
 
@@ -605,7 +624,7 @@ graph TD
 │   └── 项目登记
 ├── 音频素材分支 (并行)
 │   ├── TTS语音合成
-│   ├── BGM素材准备
+│   ├── BGM素材准备 (用户提供/搜索插件)
 │   └── SRT字幕生成
 └── 同步收敛点
     ├── 音频素材同步点 (等待TTS+BGM+字幕)
@@ -620,6 +639,7 @@ graph TD
 3. **同步机制**：使用同步点确保所有必需素材就绪后再进行装配
 4. **失败处理**：任一并行分支失败时，其他分支继续执行，最终在同步点进行状态检查
 5. **预生成复用**：字幕、TTS、BGM在装配阶段直接使用，避免重复计算
+6. **BGM双源策略**：支持用户提供、搜索插件两种BGM获取方式，简化BGM处理逻辑
 
 **性能提升预期：**
 - 总体耗时减少：30-40%（原串行480-720秒 → 并行300-450秒）
@@ -955,20 +975,44 @@ graph TB
   - 音频后期处理与优化
   - 背景音乐混音
   - 音频同步与对齐
+  - BGM搜索插件集成
 支持的TTS音色:
   - 男声: 5种专业音色
   - 女声: 5种专业音色
   - 语速调节: 0.5x - 2.0x
+BGM搜索插件:
+  - 智能搜索: 统一接口支持关键词、风格、情绪等多维度查询
+  - 音乐库整合: 支持多个第三方音乐平台API，提供丰富音乐资源
+  - 版权检查: 自动验证商用授权状态和使用许可
+  - 智能推荐: 基于视频内容特征和用户偏好推荐合适BGM
+  - 预览功能: 支持音乐片段预览和实时试听
 输入参数:
   - 文本内容: String
   - 音色选择: Enum
   - 语速设置: Float
   - 背景音乐: URL (可选)
+  - BGM搜索参数: Object (可选)
+    - search_query: String (支持关键词、风格、情绪等自然语言查询)
+    - duration_preference: Float
+    - genre_filter: Array[String]
+    - mood_filter: Array[String]
 输出格式:
   {
     "voice_url": "TTS音频地址",
     "bgm_url": "背景音乐地址",
     "mixed_url": "混音后音频地址",
+    "bgm_search_results": [
+      {
+        "title": "音乐标题",
+        "artist": "艺术家",
+        "duration": 180.0,
+        "genre": "流行",
+        "mood": "轻松",
+        "license": "commercial",
+        "preview_url": "试听地址",
+        "download_url": "下载地址"
+      }
+    ],
     "duration": 28.5,
     "format": "mp3",
     "quality": "24kHz"
@@ -1395,58 +1439,201 @@ AI素材类型:
 - 当开启时，先走“意图解析”，将自由文本转为结构化指令，再进入“基于意图的脚本生成”；关闭则直接进入“生成短视频脚本”。
 - 变量集中在开始节点统一声明，运行中仅对关键产物（如 `draft_id`）做回填。
 
-#### 5.1.1 工作流总体流程图
+#### 5.1.1 工作流总体流程图（优化版本）
 
 ```mermaid
-graph TB
-    Start["🎬 开始节点<br/>start_optimized<br/>时长策略: 混合（默认）<br/>TTS: 自动<br/>语速锁定: 开<br/>容差秒: 0.2/0.3"] --> Validate[📋 参数验证]
-    Start --> HasImgEarly{"是否提供用户图片?<br/>start_optimized.user_images"}
-    HasImgEarly -->|是| UImgToVid["图生视频<br/>tool_doubao_image2video"]
-    UImgToVid --> Collect
-    Validate --> Generate[🎯 分镜生成\nllm_generate_storyboard]
-    Generate --> Parse[📝 分镜解析\ncode_parse_storyboard]
-    Parse --> Loop{{🔄 素材生成循环\niteration_generate_assets}}
+graph TD
+    %% 开始节点
+    START[start_optimized<br/>📋开始节点<br/>接收用户输入参数]
+    
+    %% LLM节点 - 分镜生成
+    LLM_STORY[llm_generate_storyboard<br/>🤖LLM节点<br/>AI生成分镜脚本]
+    
+    %% Code节点 - 分镜解析
+    CODE_PARSE[code_parse_storyboard<br/>💻Code节点<br/>解析分镜JSON数据]
+    
+    %% HTTP节点 - 创建项目（MCP优先）
+    HTTP_PROJECT[http_create_project<br/>🌐HTTP请求节点<br/>创建CapCut项目草稿<br/>MCP优先，HTTP降级]
+    
+    %% 并行分支起点
+    PARALLEL_START[parallel_branch_start<br/>🔀并行分支起点<br/>启动音频与视觉素材并行处理]
+    
+    %% 音频处理分支（与视觉素材并行处理）
+    subgraph AUDIO_BRANCH["🎵 音频处理分支"]
+        IF_TTS{if_check_tts_enabled<br/>🔀条件判断节点<br/>检查是否启用TTS}
+        TOOL_TTS[tool_tts_synthesis<br/>🔧工具节点<br/>TTS语音合成<br/>音频为主时钟基准]
+        CODE_AUDIO_PROCESS[code_audio_processing<br/>💻Code节点<br/>音频时长分析与字幕对齐]
+        HTTP_SUBTITLE[http_generate_subtitle<br/>🌐HTTP请求节点<br/>生成字幕文件]
+        
+        %% 音频分支内部连接
+        IF_TTS -->|启用TTS| TOOL_TTS
+        IF_TTS -->|禁用TTS| CODE_AUDIO_PROCESS
+        IF_TTS -->|同时启动| HTTP_SUBTITLE
+        TOOL_TTS --> CODE_AUDIO_PROCESS
+    end
+    
+    %% 视觉素材处理分支（按方案B重新设计）
+    subgraph VISUAL_BRANCH["🎬 视觉素材处理分支"]
+        ITER_VISUAL[iteration_generate_visual<br/>🔄迭代节点<br/>并行生成视觉素材<br/>与音频处理同时进行]
+        
+        %% 按素材来源三分类（方案B架构）
+        IF_MATERIAL_SOURCE{if_material_source_route<br/>🔀条件判断节点<br/>素材来源路由分类}
+        
+        %% AI生成素材分支
+        subgraph AI_GENERATED["🤖 AI生成素材分支"]
+            IF_AI_TYPE{if_ai_generation_type<br/>🔀条件判断节点<br/>AI生成类型选择}
+            TOOL_T2I[tool_doubao_text2image<br/>🔧工具节点<br/>文生图工具]
+            TOOL_T2V[tool_doubao_text2video<br/>🔧工具节点<br/>文生视频工具]
+        end
+        
+        %% 用户提供素材分支
+        subgraph USER_PROVIDED["👤 用户提供素材分支"]
+            IF_USER_TYPE{if_user_material_type<br/>🔀条件判断节点<br/>用户素材类型检查}
+            HTTP_USER_IMAGE[http_add_user_image<br/>🌐HTTP请求节点<br/>添加用户图片<br/>MCP优先登记]
+            HTTP_USER_VIDEO[http_add_user_video<br/>🌐HTTP请求节点<br/>添加用户视频<br/>MCP优先登记]
+            HTTP_USER_BGM[http_add_user_bgm<br/>🌐HTTP请求节点<br/>添加用户BGM<br/>MCP优先登记]
+        end
+        
+        %% BGM搜索插件分支（新增）
+        subgraph BGM_SEARCH["🎵 BGM搜索插件分支"]
+            TOOL_BGM_SEARCH[tool_bgm_search_plugin<br/>🔧工具节点<br/>BGM搜索插件<br/>关键词/风格/情绪搜索]
+            HTTP_BGM_REGISTER[http_register_bgm_asset<br/>🌐HTTP请求节点<br/>登记BGM素材<br/>MCP优先登记]
+        end
+        
+        %% 统一图转视频处理（方案B优化）
+        CODE_IMG_TO_VIDEO{code_check_img_to_video<br/>💻Code节点<br/>统一图转视频处理判断}
+        TOOL_I2V_UNIFIED[tool_doubao_image2video<br/>🔧工具节点<br/>统一图转视频处理<br/>处理所有图片素材]
+        
+        %% 素材来源路由
+        ITER_VISUAL --> IF_MATERIAL_SOURCE
+        IF_MATERIAL_SOURCE -->|AI生成| IF_AI_TYPE
+        IF_MATERIAL_SOURCE -->|用户提供| IF_USER_TYPE
+        IF_MATERIAL_SOURCE -->|BGM搜索| TOOL_BGM_SEARCH
+        
+        %% AI生成分支路由
+        IF_AI_TYPE -->|文生图| TOOL_T2I
+        IF_AI_TYPE -->|文生视频| TOOL_T2V
+        TOOL_T2I --> CODE_IMG_TO_VIDEO
+        TOOL_T2V --> CONVERGENCE
+        
+        %% 用户提供分支路由
+        IF_USER_TYPE -->|用户图片| HTTP_USER_IMAGE
+        IF_USER_TYPE -->|用户视频| HTTP_USER_VIDEO
+        IF_USER_TYPE -->|用户BGM| HTTP_USER_BGM
+        HTTP_USER_IMAGE --> CODE_IMG_TO_VIDEO
+        HTTP_USER_VIDEO --> CONVERGENCE
+        HTTP_USER_BGM --> CONVERGENCE
+        
+        %% BGM搜索分支路由
+        TOOL_BGM_SEARCH --> HTTP_BGM_REGISTER
+        HTTP_BGM_REGISTER --> CONVERGENCE
+        
+        %% 统一图转视频处理
+        CODE_IMG_TO_VIDEO -->|需要转视频| TOOL_I2V_UNIFIED
+        CODE_IMG_TO_VIDEO -->|保持图片| CONVERGENCE
+        TOOL_I2V_UNIFIED --> CONVERGENCE
+    end
+    
+    %% 素材收敛点（强化MCP策略）
+    CONVERGENCE[code_assets_convergence<br/>💻Code节点<br/>素材同步收敛点<br/>并行上传与登记<br/>MCP优先，HTTP降级]
+    
+    %% 后续处理节点
+    CODE_AUDIO_STRATEGY[code_audio_strategy<br/>💻Code节点<br/>音频为主时钟对齐策略]
+    HTTP_BGM_MIX[http_bgm_ducking_mix<br/>🌐HTTP请求节点<br/>BGM智能混音与ducking<br/>使用预生成BGM]
+    HTTP_TIMELINE[http_timeline_assembly<br/>🌐HTTP请求节点<br/>批量装配时间轴素材<br/>MCP优先，HTTP降级]
+    CODE_VALIDATE[code_validate_draft<br/>💻Code节点<br/>草稿完整性校验与补全]
+    CODE_FINAL_CHECK[code_final_validation<br/>💻Code节点<br/>渲染前参数校验]
+    HTTP_RENDER[http_submit_render<br/>🌐HTTP请求节点<br/>提交渲染任务<br/>HTTP云端优先]
+    END[end_success<br/>📋结束节点<br/>返回视频下载链接]
 
-    Loop -->|文生图| T2I[文生图\ntool_doubao_text2image]
-    Loop -->|文生视频| T2V[文生视频\ntool_doubao_text2video]
-    Loop -->|图生视频| HasVid{是否提供视频素材?\nstart_optimized.video_url}
+    %% 主流程连接
+    START --> LLM_STORY
+    LLM_STORY --> CODE_PARSE
+    CODE_PARSE --> HTTP_PROJECT
+    HTTP_PROJECT --> PARALLEL_START
+    
+    %% 并行分支启动
+    PARALLEL_START --> AUDIO_BRANCH
+    PARALLEL_START --> VISUAL_BRANCH
+    
+    %% 音频分支收敛
+    TOOL_TTS --> CONVERGENCE
+    CODE_AUDIO_PROCESS --> CONVERGENCE
+    HTTP_SUBTITLE --> CONVERGENCE
+    
+    %% 后续流程
+    CONVERGENCE --> CODE_AUDIO_STRATEGY
+    CODE_AUDIO_STRATEGY --> HTTP_BGM_MIX
+    HTTP_BGM_MIX --> HTTP_TIMELINE
+    HTTP_TIMELINE --> CODE_VALIDATE
+    CODE_VALIDATE --> CODE_FINAL_CHECK
+    CODE_FINAL_CHECK --> HTTP_RENDER
+    HTTP_RENDER --> END
 
-    T2I --> Img2Vid{是否转视频?\nstart_optimized.image_to_video}
-    Img2Vid -->|是| I2V_from_img[图生视频\ntool_doubao_image2video]
-    Img2Vid -->|否| Collect[📦 素材收集\ncode_collect_assets]
+    %% 节点样式定义
+    classDef startEnd fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#0d47a1;
+    classDef llmNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
+    classDef codeNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+    classDef httpNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef toolNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f;
+    classDef ifNode fill:#f1f8e9,stroke:#689f38,stroke-width:2px,color:#33691e;
+    classDef iterNode fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#004d40;
+    classDef parallelNode fill:#fff8e1,stroke:#ff8f00,stroke-width:3px,color:#e65100;
+    classDef convergenceNode fill:#fce4ec,stroke:#ad1457,stroke-width:3px,color:#880e4f;
+    classDef userBranch fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#1a237e;
+    classDef aiBranch fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#4a148c;
+    classDef bgmBranch fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
 
-    HasVid -->|是| UserVid[使用用户视频\nhttp_add_user_video]
-    HasVid -->|否| I2V[图生视频\ntool_doubao_image2video]
-
-    I2V_from_img --> Collect
-    T2V --> Collect
-    I2V --> Collect
-    UserVid --> Collect
-
-    Collect --> Create[🎬 创建视频项目\nhttp_create_project]
-    Create --> Timeline[⏱️ 添加时间轴素材\nhttp_add_timeline_assets]
-    Timeline --> AudioConf{"音频配置<br/>旁白: start_optimized.enable_tts<br/>BGM: start_optimized.bgm_url"}
-    AudioConf -->|旁白=是| TTS[🎙️ 语音合成\ntool_tts_synthesis]
-    AudioConf -->|旁白=否且BGM=是| AddBGM[🎵 添加BGM\nhttp_add_bgm]
-    AudioConf -->|旁白=否且BGM=否| Render[🎥 渲染视频\nhttp_render_video]
-    TTS --> BGMOpt{"是否有BGM?<br/>start_optimized.bgm_url"}
-    BGMOpt -->|是| AddBGM
-    BGMOpt -->|否| Render
-    AddBGM --> Render
-
-    Render --> Link[🔗 生成下载链接\nhttp_generate_download_link]
-    Link --> Success[✅ 输出成功结果\nanswer_success]
-
-    classDef startEnd fill:#e1f5fe,stroke:#90caf9,color:#0d47a1;
-    classDef process fill:#f3e5f5,stroke:#ba68c8,color:#4a148c;
-    classDef decision fill:#fff3e0,stroke:#ffb74d,color:#e65100;
-    classDef loop fill:#e8f5e9,stroke:#81c784,color:#1b5e20;
-
-    class Start,Success startEnd
-    class Validate,Generate,Parse,Collect,TTS,Create,Timeline,AddBGM,Render,Link process
-    class AudioConf,BGMOpt,HasVid,Img2Vid decision
-    class Loop,T2I,T2V,I2V,I2V_from_img,UserVid loop
+    %% 应用样式
+    class START,END startEnd
+    class LLM_STORY llmNode
+    class CODE_PARSE,CODE_AUDIO_PROCESS,CODE_AUDIO_STRATEGY,CODE_VALIDATE,CODE_FINAL_CHECK,CODE_IMG_TO_VIDEO codeNode
+    class HTTP_PROJECT,HTTP_SUBTITLE,HTTP_BGM_MIX,HTTP_TIMELINE,HTTP_RENDER,HTTP_USER_IMAGE,HTTP_USER_VIDEO,HTTP_USER_BGM,HTTP_BGM_REGISTER httpNode
+    class TOOL_TTS,TOOL_T2I,TOOL_T2V,TOOL_I2V_UNIFIED,TOOL_BGM_SEARCH toolNode
+    class IF_TTS,IF_MATERIAL_SOURCE,IF_AI_TYPE,IF_USER_TYPE ifNode
+    class ITER_VISUAL iterNode
+    class PARALLEL_START parallelNode
+    class CONVERGENCE convergenceNode
 ```
+
+**流程图说明：**
+
+🔄 **核心优化特性（新增）：**
+- **真正的并行处理**：音频分支与视觉素材分支完全并行执行，大幅提升效率
+- **素材同步收敛点**：确保所有素材就绪后再进行时间轴装配，避免不完整装配
+- **音频为主时钟策略**：以音频时长为基准，视觉素材按音频节拍对齐
+- **智能混音处理**：BGM自动Ducking，确保语音清晰度
+- **多层校验机制**：草稿校验 + 渲染前校验，确保输出质量
+
+🎵 **音频处理分支特性：**
+- **条件分支**：TTS启用状态决定音频处理路径
+- **时长分析**：自动分析音频时长，为视觉素材提供时间基准
+- **字幕对齐**：音频与字幕精确同步，支持断句优化
+- **音频策略**：实现音频为主时钟的对齐策略
+
+🎬 **视觉素材分支特性：**
+- **并行生成**：文生图、文生视频、图生视频、用户视频同时处理
+- **类型路由**：根据分镜需求智能选择素材生成方式
+- **批量处理**：支持多个分镜片段的素材并行生成
+
+📋 **Dify节点类型规范：**
+- **start节点**：接收用户输入，进行参数验证
+- **llm节点**：调用AI模型生成分镜脚本
+- **code节点**：执行数据处理、校验和策略逻辑
+- **http-request节点**：调用外部API服务
+- **tool节点**：调用专用工具（如TTS、AI生成工具）
+- **if-else节点**：条件判断和流程分支
+- **iteration节点**：循环处理多个素材
+- **并行分支节点**：启动多个并行处理分支
+- **收敛节点**：等待并行分支完成，同步结果
+- **end节点**：返回最终结果
+
+🎯 **与3.2节深度分析的一致性：**
+- **草稿优先策略**：先创建项目草稿，再逐步装配素材
+- **并行处理理念**：音频与视觉素材真正并行，最大化效率
+- **音频为主时钟**：以音频时长为基准的时间轴对齐策略
+- **智能降级机制**：MCP优先、HTTP降级的技术策略
+- **多层校验保障**：确保每个环节的质量和完整性
 
 #### 5.1.2 详细节点设计规范
 
@@ -2057,8 +2244,8 @@ AI模型: deepseek-ai/DeepSeek-V3
 目标：稳定、高效地产出成片，支持云端渲染与本地草稿双路径，并提供可观测事件与可回溯日志。
 
 - 渲染路径：
-  - 优先：MCP 保存草稿并在客户端渲染（`/mcp/save_draft`）
-  - 降级：HTTP 渲染服务（CapCut API 或 Bridge 渲染端点）
+  - 优先：HTTP 渲染服务（CapCut API 或 Bridge 渲染端点）
+  - 降级：MCP 保存草稿并在客户端渲染（`/mcp/save_draft`）
 
 - 参数映射：
   - 分辨率：`1080x1920 | 1920x1080 | 1080x1080`
@@ -2217,6 +2404,145 @@ workflow:
           x: 330
           y: 50
 ```
+
+### 5.1 核心工作流节点设计
+
+#### 5.1.1 流程总览（方案B-推荐）
+
+以下总览图与“3.2 核心流程深度分析”的方案B保持一致，展示核心节点与关键分支，渲染路径遵循“HTTP 优先，失败降级 MCP（保存草稿）”。
+
+```mermaid
+flowchart TD
+    start((开始\nstart_optimized)) --> sb[生成分镜\nllm_generate_storyboard]
+    sb --> parse[解析分镜\ncode_parse_storyboard]
+    parse --> loop{{素材生成循环\niteration_generate_assets}}
+    loop --> collect[素材收敛并行上传与登记\ncode_collect_assets]
+    collect --> draft[创建项目草稿\nhttp_create_project 或 /mcp/create_draft]
+    draft --> timeline[时间轴装配-批量\nhttp_add_timeline_assets]
+    timeline --> audio{音频策略\n旁白? / BGM?}
+    audio -->|旁白=是| tts[语音合成\ntool_tts_synthesis]
+    tts --> ttsNote[[TTS分片：max={{#start_optimized.tts_chunk_max_sec#}}s\n重叠={{#start_optimized.tts_chunk_overlap_sec#}}s\n锁定语速={{#start_optimized.lock_tts_speed#}}]]
+    audio -->|旁白=否且BGM=是| addBgm[添加BGM\nhttp_add_bgm]
+    audio -->|旁白=否且BGM=否| validate[校验时间轴\ncode_validate_timeline]
+    ttsNote --> duck{BGM ducking?}
+    duck -->|是| addBgm
+    duck -->|否| validate
+    addBgm --> bgmNote[[旁白区间压低={{#start_optimized.bgm_ducking_db#}}dB]]
+    bgmNote --> validate
+    validate --> sync[[主时钟：默认语音；可切视频\n字幕微调={{#start_optimized.subtitle_auto_tune#}}\n容差：段±{{#start_optimized.timing_tolerance_segment#}}s\n全片±{{#start_optimized.timing_tolerance_total#}}s]]
+    sync --> render[渲染提交（HTTP优先/MCP降级）\nhttp_render_video 或 /mcp/save_draft]
+    render --> link[生成下载链接\nhttp_generate_download_link]
+    link --> success[输出成功结果\nanswer_success]
+
+    classDef startEnd fill:#e1f5fe,stroke:#90caf9,color:#0d47a1;
+    classDef process fill:#f3e5f5,stroke:#ba68c8,color:#4a148c;
+    classDef decision fill:#fff3e0,stroke:#ffb74d,color:#e65100;
+    classDef note fill:#E6EE9C,stroke:#C0CA33,color:#33691E;
+
+    class start,success startEnd
+    class sb,parse,loop,collect,draft,timeline,tts,addBgm,validate,render,link process
+    class audio,duck decision
+    class ttsNote,bgmNote,sync note
+```
+
+说明：
+- 以上为方案B推荐路径；素材生成后的“素材收敛并行上传与登记”必经，随后统一走“时间轴装配-批量入轨”。
+- 渲染阶段遵循“HTTP云端优先，失败则仅保存草稿（MCP）”，与3.2一致；生成稳定下载链接后再回传结果。
+
+#### 5.1.2 详细节点设计规范（补齐缺失，对齐3.2/方案B）
+
+以下为在现有节点基础上补充的缺失节点，以及与3.2存在差异之处的更正。所有节点均采用统一的参数命名（snake_case）、输入/输出显式化、错误/重试对齐 5.5 错误码规范。
+
+- 节点A：code_collect_assets（素材收敛并行上传与登记）
+  - 功能：汇聚用户上传与AI生成的素材，进行并行上传/登记，输出规范化的资源引用集合。
+  - 输入：shot_assets（来自 iteration_generate_assets）、user_uploads（可选）。
+  - 输出：asset_registry（[{ id, type, url, meta{...} }]）。
+  - 可观测对齐：asset.register.start / asset.register.done / asset.register.error；统计成功率、latency_ms、资源数。
+
+- 节点B：http_create_project 或 /mcp/create_draft（创建项目草稿）
+  - 路由策略：HTTP优先；若HTTP不可用/熔断，则降级 MCP（/mcp/create_draft）。
+  - 输入：aspect_ratio、project_name（可由 topic 衍生）。
+  - 输出：draft_id（HTTP）或 draft_id（MCP Bridge）。
+  - 可观测对齐：draft.create.start / draft.create.done / draft.create.error；记录channel=http|mcp。
+
+- 节点C：http_add_timeline_assets（时间轴装配-批量入轨）
+  - 功能：批量写入 timeline_items，包含视频/图片/音频/字幕片段与关键变换。
+  - 输入：timeline_items（数组，结构同 5.2.3 所列示例）。
+  - 输出：timeline_id、clip_count。
+  - 可观测对齐：timeline.batch.start / timeline.batch.done / timeline.batch.validation_error。
+
+- 节点D：code_validate_timeline（草稿校验与元数据补全）
+  - 功能：基于主时钟策略（voice/video）与容差阈值对齐各片段；自动微调字幕；补全缺失元数据（如采样率/声道）。
+  - 输入：timeline、master_clock_mode、timing_*、subtitle_auto_tune。
+  - 输出：ok（bool）、hints（array）、timeline_patched（可选）。
+  - 可观测对齐：timeline.validate.start / timeline.validate.done；记录misalign_count、max_drift_ms。
+
+- 节点E：tool_tts_synthesis（语音合成）
+  - 功能：按分镜切片进行TTS并支持分片拼接，支持锁定语速与拼接平滑处理。
+  - 输入：text/segments、voice_type、voice_speed、voice_pitch、sample_rate、format、timeout。
+  - 输出：audio_segments（含 url/duration_sec/format/sample_rate）。
+  - 可观测对齐：tts.start / tts.done / tts.error；记录chunks、latency_ms、timeout_count。
+
+- 节点F：http_add_bgm（添加BGM）
+  - 功能：根据旁白区间执行 ducking（压低分贝）。
+  - 输入：bgm_url、ducking_enable、ducking_db。
+  - 输出：bgm_track_id。
+  - 可观测对齐：bgm.add.start / bgm.add.done；记录ducking=true|false、db。
+
+- 节点G：渲染提交（HTTP优先/MCP降级）→ http_render_video 或 /mcp/save_draft
+  - 策略：优先HTTP云渲染；若提交/队列/时限失败，则降级仅保存草稿（MCP），并回传 draft_path，提示用户稍后继续。
+  - 输入：resolution、codec、fps、bitrate_mode、timeout。
+  - 输出：video_url（若HTTP渲染）、或 draft_path（若MCP草稿）、thumbnail_url、duration_sec、size_mb、render_task_id（可选）。
+  - 可观测对齐：render.submit / render.progress / render.done / render.timeout；发生降级时记录 degrade_to=mcp_draft。
+
+- 节点H：http_generate_download_link（生成下载链接）
+  - 功能：将内部存储地址转换为稳定的可访问URL，设置有效期与权限。
+  - 输入：video_url 或 draft_path。
+  - 输出：public_download_url。
+  - 可观测对齐：deliver.link.start / deliver.link.done；记录ttl_sec、cdn_region。
+
+注：以上节点与 5.2.3 的参数表完全兼容；新增/补齐节点仅扩展，不删除既有节点；命名与事件与 5.7 保持一致。
+
+#### 5.1.3 时长对齐与同步策略（复原并校准）
+
+- 主时钟设置：默认 voice（语音为主）；当 preserve_user_video_duration=true 且存在用户视频时，切换为 video 主时钟。
+- TTS方式：
+  - 分片合成：每片最大 tts_chunk_max_sec，片间重叠 tts_chunk_overlap_sec；拼接处做淡入淡出与能量匹配。
+  - 语速控制：lock_tts_speed=true 时，禁止跨片漂移；统一以 voice_speed 为基准。
+- 字幕与画面素材：
+  - 字幕自动微调（subtitle_auto_tune）：按音素边界或能量峰做±timing_tolerance_segment 以内微调。
+  - 画面素材：以主时钟为锚，允许在段内做±timing_tolerance_segment 的拉伸或补帧；全片累计误差≤±timing_tolerance_total。
+- BGM添加：
+  - 旁白区间 ducking（bgm_ducking_enable）：压低 bgm_ducking_db 分贝；非旁白区间恢复原音量，过渡采用线性包络。
+- 渲染前校验：
+  - 校验片段字段完整性、轨道冲突、音视频对齐误差、TTS采样率/声道一致性。
+  - 超出容差阈值时：优先自动修正（如拉伸/微调），失败则提示并降级仅保存草稿。
+
+#### 5.1.4 路由可观测与事件日志（对齐5.7）
+
+- 事件：workflow.start、route.decided、storyboard.done、assets.plan.done、tts.done、subtitle.done、render.submit、render.progress、render.done、video.ready、workflow.done、workflow.error。
+- 字段：trace_id、workflow_id、node_id、ts、cost_ms、status、error_code、channel（http|mcp）、retry_count、latency_ms。
+- 要求：所有外部调用需记录 request/response 摘要（脱敏），失败态映射到 5.5 错误码。
+
+#### 5.1.5 素材收敛与登记可观测事件
+
+- asset.register.start：开始并行登记，含资源计数与类型分布。
+- asset.register.done：登记完成，返回去重后的资源ID清单（计数与失败比）。
+- asset.register.error：记录首要失败原因（invalid_url/timeout/duplicate）。
+
+#### 5.1.6 时间轴装配（批量）可观测事件
+
+- timeline.batch.start：携带 clip_count、tracks、payload_size。
+- timeline.batch.validation_error：422类校验失败；提示缺失字段并中断。
+- timeline.batch.done：返回 timeline_id、clip_count、latency_ms。
+
+#### 5.1.7 渲染环境与执行策略（HTTP优先/MCP降级）
+
+- 通道优先级：渲染提交优先 HTTP 渲染服务；失败则降级到 MCP 仅保存草稿（/mcp/save_draft）。
+- 超时与重试：HTTP 渲染 timeout=RENDER_TIMEOUT_SEC（默认240s），失败可重试1次；若仍失败，触发降级并产出 draft_path。
+- 失败提示：render.submit.timeout / render.queue.full 等错误码须带 user_message 与修复建议；降级时明确告知“已为您保存草稿，可稍后继续渲染”。
+
+---
 
 #### 5.2.2 节点配置规范
 
