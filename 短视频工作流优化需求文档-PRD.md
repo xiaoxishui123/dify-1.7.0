@@ -135,135 +135,7 @@
 └─ 成本可控
 ```
 
-### 附录E：MCP Bridge 部署与开关指南
 
-本附录用于指导在本地/服务器部署 CapCut MCP Bridge，并通过环境变量一键启用/禁用 MCP 路径（保留 HTTP 降级）。
-
-#### E.1 组件说明
-- capcut_mcp.service：运行 mcp_server.py，通过 stdio 暴露 MCP 工具（Python 3.10+ 独立 venv）。
-- capcut_mcp_bridge.service：轻量 HTTP Bridge，转发到 MCP Client（建议端口 9101）。
-- （可选）capcut_http.service：CapCut HTTP 服务或现有 CapCutAPI 端点（例如 9001/9000）。
-
-#### E.2 目录与运行时建议
-- 代码目录：/home/CapCutAPI-1.1.0
-- Python：系统仍保留 Dify Code 节点使用的 /usr/local/bin/python3.9；CapCutAPI 使用 Python 3.10+ 独立虚拟环境（互不影响）。
-
-```bash
-python3.10 -m venv /home/CapCutAPI-1.1.0/venv
-source /home/CapCutAPI-1.1.0/venv/bin/activate
-pip install -U pip wheel
-pip install -r /home/CapCutAPI-1.1.0/requirements.txt
-```
-
-#### E.3 systemd 服务示例
-
-`/etc/systemd/system/capcut_mcp.service`
-```ini
-[Unit]
-Description=CapCut MCP Server
-After=network.target
-
-[Service]
-Type=simple
-User=%i
-WorkingDirectory=/home/CapCutAPI-1.1.0
-Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python mcp_server.py
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-```
-
-`/etc/systemd/system/capcut_mcp_bridge.service`
-```ini
-[Unit]
-Description=CapCut MCP HTTP Bridge
-After=network.target capcut_mcp.service
-
-[Service]
-Type=simple
-User=%i
-WorkingDirectory=/home/CapCutAPI-1.1.0
-Environment=PYTHONUNBUFFERED=1
-Environment=PORT=9101
-Environment=MCP_STDIN_CMD="/home/CapCutAPI-1.1.0/venv/bin/python mcp_server.py"
-ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python bridge_http.py --port ${PORT}
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-```
-
-（可选）`/etc/systemd/system/capcut_http.service`
-```ini
-[Unit]
-Description=CapCut HTTP Service (Optional)
-After=network.target
-
-[Service]
-Type=simple
-User=%i
-WorkingDirectory=/home/CapCutAPI-1.1.0
-Environment=PYTHONUNBUFFERED=1
-Environment=PORT=9000
-ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python capcut_server.py --port ${PORT}
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-```
-
-启停命令：
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable capcut_mcp.service capcut_mcp_bridge.service
-sudo systemctl start capcut_mcp.service capcut_mcp_bridge.service
-sudo systemctl status capcut_mcp.service capcut_mcp_bridge.service | cat
-```
-
-#### E.4 环境变量与开关
-- ENABLE_CAPCUT_MCP：true|false，是否启用 MCP 路径。
-- CAPCUT_MCP_BRIDGE_BASE：如 http://127.0.0.1:9101。
-- CAPCUT_HTTP_BASE：现有 HTTP 服务基础地址，如 http://127.0.0.1:9000。
-- X-Api-Key：Bridge 统一鉴权（如启用）。
-
-在 Dify 中配置方式：项目环境变量或开始节点输入映射；DSL 可通过这些变量决定优先走 MCP 端点或降级 HTTP。
-
-#### E.5 健康检查与连通性测试
-```bash
-curl -sS ${CAPCUT_MCP_BRIDGE_BASE}/health | cat
-curl -sS -X POST ${CAPCUT_MCP_BRIDGE_BASE}/mcp/create_draft -H 'Content-Type: application/json' \
-  -d '{"width":1080,"height":1920,"project_name":"test"}' | cat
-
-curl -sS -X POST ${CAPCUT_HTTP_BASE}/create_draft -H 'Content-Type: application/json' \
-  -d '{"width":1080,"height":1920}' | cat
-```
-
-#### E.6 日志与排障
-- 统一记录：工具名、draft_id/clip_id、耗时、重试次数、HTTP 状态、错误码。
-- 查看日志：
-```bash
-journalctl -u capcut_mcp.service -n 200 -f | cat
-journalctl -u capcut_mcp_bridge.service -n 200 -f | cat
-```
-- 常见问题：
-  - Python 版本不匹配：确保 Bridge/MCP 使用 3.10+ venv，Dify Code 节点继续用 /usr/local/bin/python3.9。
-  - 端口占用：检查 9101/9000 是否被占用。
-  - 权限问题：确认服务运行用户对目录有读写权限。
-
-#### E.7 回滚与灰度
-- 开关回滚：将 ENABLE_CAPCUT_MCP=false，DSL 自动降级到 HTTP 节点链路。
-- 灰度发布：前期仅在 10%-50% 任务启用 MCP；监控成功率与耗时，逐步放量。
-- 快速回滚：保留原 HTTP 节点完整链路，MCP 任一关键端失败即回退。
-
-#### E.8 安全与合规
-- 内网部署或反代限源；必要时为素材 URL 配置 allowlist。
-- 令牌与密钥仅经环境变量注入；日志脱敏处理。
-- 对外接口限流与超时设定，防止滥用。
 
 ### 2.2 核心使用场景
 
@@ -3337,9 +3209,7 @@ graph TB
 6) 统一术语与交叉引用：asset_generation.route_decided、timeline_batch.* 等事件名称与 5.1.x 小节保持一致。
 
 
-## 附录
-
-### 附录A：接口契约小抄
+### 附录F：接口契约小抄
 
 # 接口契约小抄（MCP Bridge / HTTP 降级）
 
@@ -3412,7 +3282,7 @@ graph TB
 
 — 以上内容均来源于主PRD与v2.1/2.0同步后的3.2与5.3.4章节，确保与文档一致。
 
-### 附录B：错误码清单
+### 附录G：错误码清单
 
 ```json
 {
@@ -3479,3 +3349,133 @@ graph TB
   ]
 }
 ```
+
+### 附录H：MCP Bridge 部署与开关指南
+
+本附录用于指导在本地/服务器部署 CapCut MCP Bridge，并通过环境变量一键启用/禁用 MCP 路径（保留 HTTP 降级）。
+
+#### H.1 组件说明
+- capcut_mcp.service：运行 mcp_server.py，通过 stdio 暴露 MCP 工具（Python 3.10+ 独立 venv）。
+- capcut_mcp_bridge.service：轻量 HTTP Bridge，转发到 MCP Client（建议端口 9101）。
+- （可选）capcut_http.service：CapCut HTTP 服务或现有 CapCutAPI 端点（例如 9001/9000）。
+
+#### H.2 目录与运行时建议
+- 代码目录：/home/CapCutAPI-1.1.0
+- Python：系统仍保留 Dify Code 节点使用的 /usr/local/bin/python3.9；CapCutAPI 使用 Python 3.10+ 独立虚拟环境（互不影响）。
+
+```bash
+python3.10 -m venv /home/CapCutAPI-1.1.0/venv
+source /home/CapCutAPI-1.1.0/venv/bin/activate
+pip install -U pip wheel
+pip install -r /home/CapCutAPI-1.1.0/requirements.txt
+```
+
+#### H.3 systemd 服务示例
+
+`/etc/systemd/system/capcut_mcp.service`
+```ini
+[Unit]
+Description=CapCut MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/CapCutAPI-1.1.0
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python mcp_server.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`/etc/systemd/system/capcut_mcp_bridge.service`
+```ini
+[Unit]
+Description=CapCut MCP HTTP Bridge
+After=network.target capcut_mcp.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/CapCutAPI-1.1.0
+Environment=PYTHONUNBUFFERED=1
+Environment=PORT=9101
+Environment=MCP_STDIN_CMD="/home/CapCutAPI-1.1.0/venv/bin/python mcp_server.py"
+ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python bridge_http.py --port ${PORT}
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+```
+
+（可选）`/etc/systemd/system/capcut_http.service`
+```ini
+[Unit]
+Description=CapCut HTTP Service (Optional)
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/CapCutAPI-1.1.0
+Environment=PYTHONUNBUFFERED=1
+Environment=PORT=9000
+ExecStart=/home/CapCutAPI-1.1.0/venv/bin/python capcut_server.py --port ${PORT}
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启停命令：
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable capcut_mcp.service capcut_mcp_bridge.service
+sudo systemctl start capcut_mcp.service capcut_mcp_bridge.service
+sudo systemctl status capcut_mcp.service capcut_mcp_bridge.service | cat
+```
+
+#### H.4 环境变量与开关
+- ENABLE_CAPCUT_MCP：true|false，是否启用 MCP 路径。
+- CAPCUT_MCP_BRIDGE_BASE：如 http://127.0.0.1:9101。
+- CAPCUT_HTTP_BASE：现有 HTTP 服务基础地址，如 http://127.0.0.1:9000。
+- X-Api-Key：Bridge 统一鉴权（如启用）。
+
+在 Dify 中配置方式：项目环境变量或开始节点输入映射；DSL 可通过这些变量决定优先走 MCP 端点或降级 HTTP。
+
+#### H.5 健康检查与连通性测试
+```bash
+curl -sS ${CAPCUT_MCP_BRIDGE_BASE}/health | cat
+curl -sS -X POST ${CAPCUT_MCP_BRIDGE_BASE}/mcp/create_draft -H 'Content-Type: application/json' \
+  -d '{"width":1080,"height":1920,"project_name":"test"}' | cat
+
+curl -sS -X POST ${CAPCUT_HTTP_BASE}/create_draft -H 'Content-Type: application/json' \
+  -d '{"width":1080,"height":1920}' | cat
+```
+
+#### H.6 日志与排障
+- 统一记录：工具名、draft_id/clip_id、耗时、重试次数、HTTP 状态、错误码。
+- 查看日志：
+```bash
+journalctl -u capcut_mcp.service -n 200 -f | cat
+journalctl -u capcut_mcp_bridge.service -n 200 -f | cat
+```
+- 常见问题：
+  - Python 版本不匹配：确保 Bridge/MCP 使用 3.10+ venv，Dify Code 节点继续用 /usr/local/bin/python3.9。
+  - 端口占用：检查 9101/9000 是否被占用。
+  - 权限问题：确认服务运行用户对目录有读写权限。
+
+#### H.7 回滚与灰度
+- 开关回滚：将 ENABLE_CAPCUT_MCP=false，DSL 自动降级到 HTTP 节点链路。
+- 灰度发布：前期仅在 10%-50% 任务启用 MCP；监控成功率与耗时，逐步放量。
+- 快速回滚：保留原 HTTP 节点完整链路，MCP 任一关键端失败即回退。
+
+#### H.8 安全与合规
+- 内网部署或反代限源；必要时为素材 URL 配置 allowlist。
+- 令牌与密钥仅经环境变量注入；日志脱敏处理。
+- 对外接口限流与超时设定，防止滥用。
