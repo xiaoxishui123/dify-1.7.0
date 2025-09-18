@@ -1,0 +1,116 @@
+{
+  "summary": {
+    "total_tests": 9,
+    "passed_tests": 7,
+    "failed_tests": 2,
+    "success_rate": "77.8%",
+    "test_time": "2025-09-18 12:49:31"
+  },
+  "test_results": [
+    {
+      "test_name": "MCP Bridge连通性",
+      "success": true,
+      "message": "MCP Bridge服务正常",
+      "timestamp": 1758170964.63048,
+      "details": {
+        "status": "healthy",
+        "services": [
+          "capcut_mcp",
+          "capcut_http"
+        ]
+      }
+    },
+    {
+      "test_name": "CapCut API连通性",
+      "success": true,
+      "message": "CapCut API服务正常",
+      "timestamp": 1758170964.6373298,
+      "details": {
+        "success": true,
+        "animation_types_count": 0
+      }
+    },
+    {
+      "test_name": "Dify API连通性",
+      "success": false,
+      "message": "HTTP状态码: 404",
+      "timestamp": 1758170965.0264912,
+      "details": {}
+    },
+    {
+      "test_name": "MCP创建草稿",
+      "success": true,
+      "message": "草稿创建成功",
+      "timestamp": 1758170966.165371,
+      "details": {
+        "result": {
+          "status": "success",
+          "message": "MCP service capcut_mcp processed create_draft",
+          "data": {
+            "title": "测试短视频项目",
+            "width": 1080,
+            "height": 1920
+          }
+        }
+      }
+    },
+    {
+      "test_name": "HTTP降级机制",
+      "success": true,
+      "message": "HTTP直接调用成功",
+      "timestamp": 1758170967.2153625,
+      "details": {
+        "draft_id": null
+      }
+    },
+    {
+      "test_name": "工作流配置文件",
+      "success": true,
+      "message": "配置文件结构正确",
+      "timestamp": 1758170968.3252895,
+      "details": {
+        "nodes_count": 11,
+        "env_vars_count": 5,
+        "app_name": "智能短视频生成器 v2.0"
+      }
+    },
+    {
+      "test_name": "MCP Bridge响应时间",
+      "success": true,
+      "message": "响应时间: 4.12ms",
+      "timestamp": 1758170969.3302577,
+      "details": {
+        "response_time_ms": 4.116535186767578
+      }
+    },
+    {
+      "test_name": "CapCut API响应时间",
+      "success": true,
+      "message": "响应时间: 5.05ms",
+      "timestamp": 1758170969.3354506,
+      "details": {
+        "response_time_ms": 5.053043365478516
+      }
+    },
+    {
+      "test_name": "错误处理机制",
+      "success": false,
+      "message": "期望返回错误但没有错误信息",
+      "timestamp": 1758170970.4408438,
+      "details": {
+        "jsonrpc": "2.0",
+        "result": {
+          "status": "success",
+          "message": "MCP service capcut_mcp processed invalid_method",
+          "data": {}
+        },
+        "error": null,
+        "id": "test-error-1"
+      }
+    }
+  ],
+  "recommendations": [
+    "集成成功率较低，建议检查服务配置和网络连接",
+    "以下测试失败，需要重点关注: Dify API连通性, 错误处理机制"
+  ]
+}
