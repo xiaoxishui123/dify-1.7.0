@@ -152,13 +152,26 @@ python3 test_workflow_integration.py
 2. `reports/integration_test_report.json` 中的详细测试结果
 3. 运行集成测试获取最新状态信息
 
+## GitHub仓库
+
+- **仓库地址**: https://github.com/xiaoxishui123/dify-1.7.0
+- **推送状态**: ✅ 已成功推送到远程仓库
+- **最新提交**: b239f4b - feat: 添加MCP Bridge项目
+
+### 克隆仓库
+```bash
+git clone https://github.com/xiaoxishui123/dify-1.7.0.git
+cd dify-1.7.0/MCP_Bridge_Project
+```
+
 ## 版本信息
 
 - **项目版本**: v1.0.0
 - **创建日期**: 2024年
 - **最后更新**: 集成测试通过率 77.8%
 - **状态**: 生产就绪 (核心功能完整)
+- **GitHub推送**: 2025年1月
 
 ---
 
-**注意**: 本项目已完成核心集成功能，可直接用于生产环境。建议定期运行集成测试以确保服务状态正常。
+**注意**: 本项目已完成核心集成功能，可直接用于生产环境。建议定期运行集成测试以确保服务状态正常。项目已推送到GitHub，可通过上述仓库地址访问。
