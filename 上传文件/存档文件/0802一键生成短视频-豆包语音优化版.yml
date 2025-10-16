@@ -1,0 +1,2829 @@
+app:
+  description: 使用豆包TTS优化的一键生成短视频工作流。支持多种音色选择、语速调节，集成了豆包文生图、图生视频和语音合成功能。
+  icon: 🎞️
+  icon_background: '#E6F4FF'
+  mode: advanced-chat
+  name: 0802一键生成短视频-豆包语音优化版
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: allenwriter/doubao_image:0.0.1@d9cb638d96848452b8fc2296c61ce93082a5ffa6968a114c15d008cbd4b3730b
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/volcengine_maas:0.0.25@69d479387c274399cdf967854fa2eab8b2ece3c1b28c702724402913639dcc24
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/siliconflow:0.0.20@a0297ff9ba92d57b12efa51dad87bbf68f6556979d2f32ed15fc833a3a1f4f39
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      - .MP4
+      - .MOV
+      - .MP3
+      - .WAV
+      allowed_file_types:
+      - image
+      - video
+      - audio
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 5
+    opening_statement: '🎬 **豆包语音优化版短视频生成工具**
+
+
+      ✨ **功能特点**：
+
+      - 🎙️ 10种豆包音色可选（男声/女声）
+
+      - ⚡ 语速自由调节（0.5x-2.0x）
+
+      - 🎵 高品质音频合成
+
+      - 🖼️ AI文生图/文生视频
+
+      - 🎬 专业视频制作流程
+
+
+      📝 **使用说明**：
+
+      1. 输入视频主题或脚本
+
+      2. 选择AI素材类型
+
+      3. 配置音色和语速
+
+      4. 设置视频参数
+
+      5. 一键生成专业短视频
+
+
+      🚀 **开始创作您的精彩视频吧！**
+
+      '
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 帮我制作一个关于春天的短视频
+    - 生成一个科技产品介绍视频
+    - 创作一个美食制作教程视频
+    - 制作一个旅游景点推广视频
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: start-to-llm-script
+      selected: false
+      source: start_1
+      sourceHandle: source
+      target: llm_script
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: llm-script-to-llm-srt
+      selected: false
+      source: llm_script
+      sourceHandle: source
+      target: llm_srt
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: http-request
+      id: srt-to-create-draft
+      selected: false
+      source: llm_srt
+      sourceHandle: source
+      target: http_create_draft
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: create-draft-to-extract
+      selected: false
+      source: http_create_draft
+      sourceHandle: source
+      target: llm_extract_draft_id
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: extract-to-trim
+      selected: false
+      source: llm_extract_draft_id
+      sourceHandle: source
+      target: llm_draft_id_trim
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: trim-to-branch-video
+      selected: false
+      source: llm_draft_id_trim
+      sourceHandle: source
+      target: branch_video_source
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: video-provided-to-add-video
+      selected: false
+      source: branch_video_source
+      sourceHandle: has_video
+      target: http_add_video
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: no-video-to-branch-asset
+      selected: false
+      source: branch_video_source
+      sourceHandle: no_video
+      target: branch_asset
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: if-else
+      id: add-video-to-branch-asset
+      selected: false
+      source: http_add_video
+      sourceHandle: source
+      target: branch_asset
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: asset-text2image-to-tool
+      selected: false
+      source: branch_asset
+      sourceHandle: asset_text2image
+      target: tool_text2image
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: add-image-to-title
+      selected: false
+      source: http_add_generated_image
+      sourceHandle: source
+      target: http_add_title_text
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: add-generated-video-to-title
+      selected: false
+      source: http_add_generated_video
+      sourceHandle: source
+      target: http_add_title_text
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: if-else
+      id: add-title-to-branch-subtitle
+      selected: false
+      source: http_add_title_text
+      sourceHandle: source
+      target: branch_subtitle
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: subtitle-yes-to-add-subtitle
+      selected: false
+      source: branch_subtitle
+      sourceHandle: subtitle_yes
+      target: http_add_subtitle
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: subtitle-no-to-branch-tts
+      selected: false
+      source: branch_subtitle
+      sourceHandle: subtitle_no
+      target: branch_tts
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: if-else
+      id: add-subtitle-to-branch-tts
+      selected: false
+      source: http_add_subtitle
+      sourceHandle: source
+      target: branch_tts
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: if-else
+      id: add-voice-audio-to-branch-bgm
+      selected: false
+      source: http_add_voice_audio
+      sourceHandle: source
+      target: branch_bgm
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: bgm-yes-to-add-audio
+      selected: false
+      source: branch_bgm
+      sourceHandle: bgm_yes
+      target: http_add_bgm
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: bgm-no-to-save
+      selected: false
+      source: branch_bgm
+      sourceHandle: bgm_no
+      target: http_save_draft
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: save-to-generate-link
+      selected: false
+      source: http_save_draft
+      sourceHandle: source
+      target: http_generate_draft_url
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: http_generate_draft_url-source-1754870566041-target
+      selected: false
+      source: http_generate_draft_url
+      sourceHandle: source
+      target: '1754870566041'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: 1754870566041-source-1754870570114-target
+      selected: false
+      source: '1754870566041'
+      sourceHandle: source
+      target: '1754870570114'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: 1754870570114-source-1755000000001-target
+      selected: false
+      source: '1754870570114'
+      sourceHandle: source
+      target: '1755000000001'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1755000000001-source-answer_success-target
+      selected: false
+      source: '1755000000001'
+      sourceHandle: source
+      target: answer_success
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: tool_text2image-source-1754999999001-target
+      selected: false
+      source: tool_text2image
+      sourceHandle: source
+      target: '1754999999001'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: 1754999999001-source-http_add_generated_image-target
+      selected: false
+      source: '1754999999001'
+      sourceHandle: source
+      target: http_add_generated_image
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: http_add_bgm-source-http_save_draft-target
+      selected: false
+      source: http_add_bgm
+      sourceHandle: source
+      target: http_save_draft
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: tool_image2video-source-1755050828662-target
+      selected: false
+      source: tool_image2video
+      sourceHandle: source
+      target: '1755050828662'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: 1755050828662-source-http_add_generated_video-target
+      selected: false
+      source: '1755050828662'
+      sourceHandle: source
+      target: http_add_generated_video
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: branch_asset-asset_image2video-1755081580944-target
+      selected: false
+      source: branch_asset
+      sourceHandle: asset_image2video
+      target: '1755081580944'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: tool
+      id: 1755081580944-source-1755081700532-target
+      selected: false
+      source: '1755081580944'
+      sourceHandle: source
+      target: '1755081700532'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: http-request
+      id: 17550817164710-source-http_add_title_text-target
+      selected: false
+      source: '17550817164710'
+      sourceHandle: source
+      target: http_add_title_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1755081700532-source-17550818023030-target
+      selected: false
+      source: '1755081700532'
+      sourceHandle: source
+      target: '17550818023030'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: 17550818023030-source-17550817164710-target
+      selected: false
+      source: '17550818023030'
+      sourceHandle: source
+      target: '17550817164710'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: tts-yes-to-merge-srt
+      selected: false
+      source: branch_tts
+      sourceHandle: tts_yes
+      target: code_merge_srt
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: tts-no-to-branch-bgm
+      selected: false
+      source: branch_tts
+      sourceHandle: tts_no
+      target: branch_bgm
+      targetHandle: target
+      type: custom
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: extract-voice-url-to-add-audio
+      selected: false
+      source: code_extract_voice_url
+      sourceHandle: source
+      target: http_add_voice_audio
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: branch_asset-516e59f3-3f6f-4472-bfd0-0a2fe5a0a424-tool_image2video-target
+      selected: false
+      source: branch_asset
+      sourceHandle: 516e59f3-3f6f-4472-bfd0-0a2fe5a0a424
+      target: tool_image2video
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: branch_asset-default_case-1755251376750-target
+      selected: false
+      source: branch_asset
+      sourceHandle: default_case
+      target: '1755251376750'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: tool
+      id: code_merge_srt-source-1755396094728-target
+      selected: false
+      source: code_merge_srt
+      sourceHandle: source
+      target: '1755396094728'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1755396094728-source-code_extract_voice_url-target
+      selected: false
+      source: '1755396094728'
+      sourceHandle: source
+      target: code_extract_voice_url
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 脚本/主题
+          max_length: 300
+          options: []
+          required: true
+          type: text-input
+          variable: prompt
+        - label: 视频URL（可选，供 CapCut 取流；若留空可用AI生成）
+          max_length: 500
+          options: []
+          required: false
+          type: text-input
+          variable: video_url
+        - label: BGM 音频URL（可选）
+          max_length: 500
+          options: []
+          required: false
+          type: text-input
+          variable: bgm_url
+        - label: AI 视觉素材
+          max_length: 48
+          options:
+          - 文生图像
+          - 文生视频
+          - 图生视频
+          required: true
+          type: select
+          variable: asset_mode
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 图生视频参考图片（当选择"图生视频"时建议上传）
+          max_length: 48
+          options: []
+          required: false
+          type: file
+          variable: reference_image
+        - default: '15'
+          label: 时长（秒）
+          max_length: 48
+          options:
+          - '5'
+          - '10'
+          - '15'
+          - '30'
+          - '60'
+          required: false
+          type: select
+          variable: duration
+        - default: '1080'
+          label: 画面宽度
+          max_length: 10
+          options: []
+          required: true
+          type: text-input
+          variable: width
+        - default: '1920'
+          label: 画面高度
+          max_length: 10
+          options: []
+          required: true
+          type: text-input
+          variable: height
+        - default: SourceHanSansCN_Regular
+          label: 字体（字幕/标题）
+          max_length: 48
+          options:
+          - SourceHanSansCN_Regular
+          - SourceHanSansCN_Bold
+          - MiSans_Regular
+          - HarmonyOS_Sans_SC_Regular
+          required: false
+          type: select
+          variable: font
+        - label: 字幕自动生成
+          max_length: 48
+          options:
+          - 是
+          - 否
+          required: true
+          type: select
+          variable: subtitle_autogen
+        - default: http://8.148.70.18:9000
+          label: CapCutAPI 基础地址（含协议+端口）
+          max_length: 200
+          options: []
+          required: true
+          type: text-input
+          variable: api_base_url
+        - label: 字幕转语音
+          max_length: 10
+          options:
+          - 是
+          - 否
+          required: false
+          type: select
+          variable: subtitle_tts
+        - default: zh_male_dongfanghaoran_moon_bigtts
+          label: 旁白音色
+          max_length: 50
+          options:
+          - zh_male_dongfanghaoran_moon_bigtts
+          - zh_female_tianmei_moon_bigtts
+          - zh_male_zhigang_moon_bigtts
+          - zh_female_siyue_moon_bigtts
+          - zh_male_kaikai_moon_bigtts
+          - zh_female_xiaoyu_moon_bigtts
+          - zh_male_zhengqi_moon_bigtts
+          - zh_female_xiaomo_moon_bigtts
+          - zh_male_zhihao_moon_bigtts
+          - zh_female_xiaoxin_moon_bigtts
+          required: false
+          type: select
+          variable: tts_voice
+        - default: '1.0'
+          label: 旁白语速
+          max_length: 10
+          options: []
+          required: false
+          type: text-input
+          variable: tts_speed
+      height: 425
+      id: start_1
+      position:
+        x: 30
+        y: 1219.5
+      positionAbsolute:
+        x: 30
+        y: 1219.5
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory:
+          query_prompt_template: ''
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: false
+            size: 10
+        model:
+          completion_params:
+            temperature: 0.5
+          mode: chat
+          name: THUDM/glm-4-9b-chat
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: sys-script
+          role: system
+          text: 你是专业短视频编导。根据主题生成用于配字幕的简洁脚本：\n1) 标题（<=20字）\n2) 开场钩子（1句）\n3) 正文（2-5句）\n4)
+            收尾（1句）\n用口语化中文，去除多余说明，仅输出文本内容。
+        - id: user-script
+          role: user
+          text: 主题：{{#start_1.prompt#}}\n时长（秒）：{{#start_1.duration#}}
+        selected: false
+        title: 生成短视频脚本
+        type: llm
+      height: 87
+      id: llm_script
+      position:
+        x: 362
+        y: 1219.5
+      positionAbsolute:
+        x: 362
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            temperature: 0.3
+          mode: chat
+          name: THUDM/glm-4-9b-chat
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: sys-srt
+          role: system
+          text: 把下面脚本转为标准SRT字幕内容。总时长≈{{#start_1.duration#}}秒，平均分配。输出严格为SRT文本文本，不要JSON或额外解释。
+        - id: user-srt
+          role: user
+          text: '{{#llm_script.text#}}'
+        selected: false
+        title: 脚本转SRT
+        type: llm
+      height: 87
+      id: llm_srt
+      position:
+        x: 694
+        y: 1219.5
+      positionAbsolute:
+        x: 694
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"width\": {{#start_1.width#}},\n  \"height\": {{#start_1.height#}}\n\
+              }"
+          type: raw-text
+        context:
+          enabled: false
+          variable_selector: []
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 创建草稿
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/create_draft'
+      height: 140
+      id: http_create_draft
+      position:
+        x: 1026
+        y: 1219.5
+      positionAbsolute:
+        x: 1026
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: deepseek-ai/DeepSeek-V3
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: sys-extract
+          role: system
+          text: 从下面的 JSON 响应中读取 output.draft_id。只输出该 ID 本身，不能包含引号、反引号、空格、换行、说明或代码；不能输出示例或任何额外文本。若不存在则输出空字符串。示例输出：dfd_123456_abcdef
+        - id: user-extract
+          role: user
+          text: '{{#http_create_draft.body#}}'
+        selected: false
+        title: 解析草稿ID
+        type: llm
+        vision:
+          enabled: false
+      height: 87
+      id: llm_extract_draft_id
+      position:
+        x: 1358
+        y: 1219.5
+      positionAbsolute:
+        x: 1358
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: deepseek-ai/DeepSeek-V3
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: sys-trim
+          role: system
+          text: 你将收到一个字符串。请去除其中所有换行(\n/\r)、首尾空白，只输出一行字符串本体，不能添加任何说明或引号。若为空则输出空字符串。
+        - id: user-trim
+          role: user
+          text: '{{#llm_extract_draft_id.text#}}'
+        selected: false
+        title: 规范化草稿ID
+        type: llm
+        vision:
+          enabled: false
+      height: 87
+      id: llm_draft_id_trim
+      position:
+        x: 1690
+        y: 1219.5
+      positionAbsolute:
+        x: 1690
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: has_video
+          conditions:
+          - comparison_operator: exists
+            id: cond-video-exists
+            value: ''
+            varType: string
+            variable_selector:
+            - start_1
+            - video_url
+          id: has_video
+          logical_operator: and
+        - case_id: no_video
+          conditions:
+          - comparison_operator: not exists
+            id: cond-video-missing
+            value: ''
+            varType: string
+            variable_selector:
+            - start_1
+            - video_url
+          id: no_video
+          logical_operator: and
+        selected: false
+        title: 是否提供视频URL
+        type: if-else
+      height: 171
+      id: branch_video_source
+      position:
+        x: 2022
+        y: 1219.5
+      positionAbsolute:
+        x: 2022
+        y: 1219.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"video_url\": \"{{#start_1.video_url#}}\",\n  \"draft_id\"\
+              : \"{{#llm_draft_id_trim.text#}}\",\n  \"start\": 0,\n  \"end\": {{#start_1.duration#}},\n\
+              \  \"width\": {{#start_1.width#}},\n  \"height\": {{#start_1.height#}},\n\
+              \  \"material_type\": \"video\",\n  \"type\": \"video\",\n  \"materialType\"\
+              : \"video\"\n}"
+          type: raw-text
+        context:
+          enabled: false
+          variable_selector: []
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 添加视频
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_video'
+      height: 140
+      id: http_add_video
+      position:
+        x: 2445
+        y: 1079.5
+      positionAbsolute:
+        x: 2445
+        y: 1079.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: asset_text2image
+          conditions:
+          - comparison_operator: is
+            id: cond-asset-text2image
+            value: 文生图像
+            varType: string
+            variable_selector:
+            - start_1
+            - asset_mode
+          id: asset_text2image
+          logical_operator: and
+        - case_id: asset_image2video
+          conditions:
+          - comparison_operator: is
+            id: cond-asset-image2video
+            value: 文生视频
+            varType: string
+            variable_selector:
+            - start_1
+            - asset_mode
+          id: asset_image2video
+          logical_operator: and
+        - case_id: 516e59f3-3f6f-4472-bfd0-0a2fe5a0a424
+          conditions:
+          - comparison_operator: is
+            id: 0c19417a-2547-459e-89c8-73093cb03872
+            value: 图生视频
+            varType: string
+            variable_selector:
+            - start_1
+            - asset_mode
+          - comparison_operator: exists
+            id: 3231a65a-6049-4209-a32d-8a16771d0adf
+            value: ''
+            varType: file
+            variable_selector:
+            - start_1
+            - reference_image
+          id: 516e59f3-3f6f-4472-bfd0-0a2fe5a0a424
+          logical_operator: and
+        - case_id: default_case
+          conditions:
+          - comparison_operator: is
+            id: cond-asset-image2video-no-image
+            value: 图生视频
+            varType: string
+            variable_selector:
+            - start_1
+            - asset_mode
+          - comparison_operator: not exists
+            id: cond-no-reference-image
+            value: ''
+            varType: file
+            variable_selector:
+            - start_1
+            - reference_image
+          id: default_case
+          logical_operator: and
+        selected: false
+        title: AI 素材分支
+        type: if-else
+      height: 319
+      id: branch_asset
+      position:
+        x: 2777
+        y: 1079.5
+      positionAbsolute:
+        x: 2777
+        y: 1079.5
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: The text prompt used to generate the image. Doubao will generate
+              an image based on this prompt.
+          label:
+            zh_Hans: Prompt
+          llm_description: This prompt text will be used to generate image.
+          max: null
+          min: null
+          name: prompt
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 1024x1024
+          form: form
+          human_description:
+            zh_Hans: The size of the generated image.
+          label:
+            zh_Hans: Image Size
+          llm_description: ''
+          max: null
+          min: null
+          name: size
+          options:
+          - icon: ''
+            label:
+              zh_Hans: 1024x1024 (Square)
+            value: 1024x1024
+          - icon: ''
+            label:
+              zh_Hans: 1024x1792 (Portrait)
+            value: 1024x1792
+          - icon: ''
+            label:
+              zh_Hans: 1792x1024 (Landscape)
+            value: 1792x1024
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: doubao-seedream-3-0-t2i-250415
+          form: form
+          human_description:
+            zh_Hans: Model version to use for image generation.
+          label:
+            zh_Hans: Model Version
+          llm_description: ''
+          max: null
+          min: null
+          name: model
+          options:
+          - icon: ''
+            label:
+              zh_Hans: Doubao Seedream 3.0
+            value: doubao-seedream-3-0-t2i-250415
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          model: ''
+          prompt: ''
+          size: ''
+        provider_id: allenwriter/doubao_image/doubao
+        provider_name: allenwriter/doubao_image/doubao
+        provider_type: builtin
+        selected: false
+        title: 文生图像
+        tool_configurations:
+          model:
+            type: constant
+            value: doubao-seedream-3-0-t2i-250415
+          size:
+            type: constant
+            value: 1024x1024
+        tool_description: Generate images with Doubao (豆包) AI.
+        tool_label: Text to Image
+        tool_name: text2image
+        tool_node_version: '2'
+        tool_parameters:
+          prompt:
+            type: mixed
+            value: '{{#start_1.prompt#}}，与短视频主题一致，用作画面素材。'
+        type: tool
+      height: 113
+      id: tool_text2image
+      position:
+        x: 3623
+        y: 786
+      positionAbsolute:
+        x: 3623
+        y: 786
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-346
+            key: ''
+            type: text
+            value: "{\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\",\n  \"start\"\
+              : 0,\n  \"end\": 3,\n  \"width\": {{#start_1.width#}},\n  \"height\"\
+              : {{#start_1.height#}},\n  \"image_url\": \"{{#1754999999001.oss_url#}}\"\
+              ,\n  \"material_type\": \"image\",\n  \"type\": \"image\",\n  \"materialType\"\
+              : \"image\"\n}"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 添加AI文生图片
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_image'
+      height: 140
+      id: http_add_generated_image
+      position:
+        x: 4287
+        y: 773
+      positionAbsolute:
+        x: 4287
+        y: 773
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: The text prompt used to generate the video. Doubao will generate
+              a video based on this prompt and the input image.
+          label:
+            zh_Hans: Prompt
+          llm_description: This prompt text will be used to guide the video generation
+            from the input image.
+          max: null
+          min: null
+          name: prompt
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: The image file to be used for video generation.
+          label:
+            zh_Hans: Image
+          llm_description: Image file that will be transformed into a video.
+          max: null
+          min: null
+          name: image
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: file
+        - auto_generate: null
+          default: adaptive
+          form: form
+          human_description:
+            zh_Hans: The aspect ratio of the generated video. Note that Doubao API
+              currently only supports adaptive ratio.
+          label:
+            zh_Hans: Aspect Ratio (Reference Only)
+          llm_description: ''
+          max: null
+          min: null
+          name: ratio
+          options:
+          - icon: ''
+            label:
+              zh_Hans: Adaptive (Auto)
+            value: adaptive
+          - icon: ''
+            label:
+              zh_Hans: 16:9 (Landscape)
+            value: '16:9'
+          - icon: ''
+            label:
+              zh_Hans: 9:16 (Portrait)
+            value: '9:16'
+          - icon: ''
+            label:
+              zh_Hans: 4:3 (Classic)
+            value: '4:3'
+          - icon: ''
+            label:
+              zh_Hans: 1:1 (Square)
+            value: '1:1'
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: '5'
+          form: form
+          human_description:
+            zh_Hans: The duration of the generated video in seconds.
+          label:
+            zh_Hans: Duration (seconds)
+          llm_description: ''
+          max: null
+          min: null
+          name: duration
+          options:
+          - icon: ''
+            label:
+              zh_Hans: 5 seconds
+            value: '5'
+          - icon: ''
+            label:
+              zh_Hans: 10 seconds
+            value: '10'
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          duration: ''
+          image: ''
+          prompt: ''
+          ratio: ''
+        provider_id: allenwriter/doubao_image/doubao
+        provider_name: allenwriter/doubao_image/doubao
+        provider_type: builtin
+        selected: false
+        title: 图生视频
+        tool_configurations:
+          duration:
+            type: constant
+            value: '5'
+          ratio:
+            type: constant
+            value: adaptive
+        tool_description: Generate videos from images with Doubao (豆包) AI.
+        tool_label: Image to Video
+        tool_name: image2video
+        tool_node_version: '2'
+        tool_parameters:
+          image:
+            type: variable
+            value:
+            - start_1
+            - reference_image
+          prompt:
+            type: mixed
+            value: '{{#start_1.prompt#}}，与主题一致，用作转场或铺垫镜头。'
+        type: tool
+      height: 113
+      id: tool_image2video
+      position:
+        x: 3623
+        y: 966
+      positionAbsolute:
+        x: 3623
+        y: 966
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{"video_url": "{{#1755050828662.oss_url#}}", "draft_id": "{{#llm_draft_id_trim.text#}}",
+              "start": 0, "end": 5, "target_start": 0, "track_name": "video_broll",
+              "width": {{#start_1.width#}}, "height": {{#start_1.height#}}, "material_type":
+              "video", "type": "video", "materialType": "video"}'
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 添加AI图生视频
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_video'
+      height: 140
+      id: http_add_generated_video
+      position:
+        x: 4287
+        y: 953
+      positionAbsolute:
+        x: 4287
+        y: 953
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"text\": \"{{#start_1.prompt#}}\",\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\"\
+              ,\n  \"start\": 0,\n  \"end\": 3,\n  \"font\": \"{{#start_1.font#}}\"\
+              ,\n  \"font_color\": \"#FFFFFF\",\n  \"font_size\": 36.0,\n  \"width\"\
+              : {{#start_1.width#}},\n  \"height\": {{#start_1.height#}},\n  \"material_type\"\
+              : \"text\",\n  \"type\": \"text\",\n  \"materialType\": \"text\"\n}"
+          type: raw-text
+        context:
+          enabled: false
+          variable_selector: []
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 添加标题文本
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_text'
+      height: 140
+      id: http_add_title_text
+      position:
+        x: 4619
+        y: 773
+      positionAbsolute:
+        x: 4619
+        y: 773
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: subtitle_yes
+          conditions:
+          - comparison_operator: is
+            id: cond-sub-yes
+            value: 是
+            varType: string
+            variable_selector:
+            - start_1
+            - subtitle_autogen
+          id: subtitle_yes
+          logical_operator: and
+        - case_id: subtitle_no
+          conditions:
+          - comparison_operator: is
+            id: cond-sub-no
+            value: 否
+            varType: string
+            variable_selector:
+            - start_1
+            - subtitle_autogen
+          id: subtitle_no
+          logical_operator: and
+        selected: false
+        title: 是否生成字幕
+        type: if-else
+      height: 171
+      id: branch_subtitle
+      position:
+        x: 4951
+        y: 773
+      positionAbsolute:
+        x: 4951
+        y: 773
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"srt\": {{#llm_srt.text#|tojson}},\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\"\
+              ,\n  \"time_offset\": 0,\n  \"font\": \"{{#start_1.font#}}\",\n  \"\
+              font_size\": 24.0,\n  \"font_color\": \"#FFFFFF\",\n  \"width\": {{#start_1.width#}},\n\
+              \  \"height\": {{#start_1.height#}},\n  \"material_type\": \"subtitle\"\
+              ,\n  \"type\": \"subtitle\",\n  \"materialType\": \"subtitle\"\n}"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 添加字幕（SRT）
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_subtitle'
+      height: 140
+      id: http_add_subtitle
+      position:
+        x: 5374
+        y: 633
+      positionAbsolute:
+        x: 5374
+        y: 633
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: tts_yes
+          conditions:
+          - comparison_operator: is
+            id: cond-tts-yes
+            value: 是
+            varType: string
+            variable_selector:
+            - start_1
+            - subtitle_tts
+          id: tts_yes
+          logical_operator: and
+        - case_id: tts_no
+          conditions:
+          - comparison_operator: is
+            id: cond-tts-no
+            value: 否
+            varType: string
+            variable_selector:
+            - start_1
+            - subtitle_tts
+          id: tts_no
+          logical_operator: and
+        selected: false
+        title: 是否生成旁白
+        type: if-else
+      height: 171
+      id: branch_tts
+      position:
+        x: 5706
+        y: 633
+      positionAbsolute:
+        x: 5706
+        y: 633
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        cases:
+        - case_id: bgm_yes
+          conditions:
+          - comparison_operator: exists
+            id: cond-bgm-exists
+            value: ''
+            varType: string
+            variable_selector:
+            - start_1
+            - bgm_url
+          id: bgm_yes
+          logical_operator: and
+        - case_id: bgm_no
+          conditions:
+          - comparison_operator: not exists
+            id: cond-bgm-missing
+            value: ''
+            varType: string
+            variable_selector:
+            - start_1
+            - bgm_url
+          id: bgm_no
+          logical_operator: and
+        selected: false
+        title: 是否添加BGM
+        type: if-else
+      height: 171
+      id: branch_bgm
+      position:
+        x: 7457
+        y: 493
+      positionAbsolute:
+        x: 7457
+        y: 493
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"audio_url\": \"{{#start_1.bgm_url#}}\",\n  \"draft_id\"\
+              : \"{{#llm_draft_id_trim.text#}}\",\n  \"start\": 0,\n  \"end\": {{#start_1.duration#}},\n\
+              \  \"volume\": 0.7,\n  \"track_name\": \"audio_main\",\n  \"material_type\"\
+              : \"audio\",\n  \"type\": \"audio\",\n  \"materialType\": \"audio\"\n\
+              }"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 添加背景音乐
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_audio'
+      height: 140
+      id: http_add_bgm
+      position:
+        x: 7880
+        y: 353
+      positionAbsolute:
+        x: 7880
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\"\n}"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 保存草稿
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/save_draft'
+      height: 140
+      id: http_save_draft
+      position:
+        x: 8212
+        y: 353
+      positionAbsolute:
+        x: 8212
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\"\n}"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 生成草稿下载链接
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/generate_draft_url'
+      height: 140
+      id: http_generate_draft_url
+      position:
+        x: 8544
+        y: 353
+      positionAbsolute:
+        x: 8544
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        answer: '🎬 **短视频生成完成！**
+
+
+          ✅ **草稿信息**： - 草稿ID：{{#llm_draft_id_trim.text#}} - 保存状态：{{#http_save_draft.body#}}
+          - 存储方式：{{#1754870570114.text#}}
+
+          🎯 **预览与下载**： - 📱 草稿预览：{{#1755000000001.text#}} - 📥 直接下载：{{#1754870566041.text#}}
+
+
+          💡 **使用说明**： 1. 点击"草稿预览"链接可在线预览草稿内容和时间轴 2. 预览界面集成了下载功能，支持系统选择和自定义路径 3. 可一键保存并上传到OSS，自动生成下载链接'
+        selected: false
+        title: 成功返回
+        type: answer
+      height: 306
+      id: answer_success
+      position:
+        x: 9872
+        y: 353
+      positionAbsolute:
+        x: 9872
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-ai/DeepSeek-V3
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: 896ce6bd-9612-4a1a-8947-b8ff5648a7e5
+          role: system
+          text: 从下面 JSON 中读取 body.draft_url，严格只输出该 URL，本行之外不要任何符号或解释。若不存在则输出空字符串。
+        - id: 82992863-ea4b-474a-bce4-7804c66c25d2
+          role: user
+          text: '{{#http_generate_draft_url.body#}}'
+        selected: false
+        title: 解析下载链接
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 87
+      id: '1754870566041'
+      position:
+        x: 8876
+        y: 353
+      positionAbsolute:
+        x: 8876
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-ai/DeepSeek-V3
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: 6073d961-d73e-4a1e-b128-445562e87ef0
+          role: system
+          text: 从下面 JSON 中读取 body.storage，严格只输出该值。若不存在则输出空字符串。
+        - id: 1d570154-8cab-4d12-9fc7-1eb4ecdf53b0
+          role: user
+          text: '{{#http_generate_draft_url.body#}}'
+        selected: false
+        title: 解析存储类型
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 87
+      id: '1754870570114'
+      position:
+        x: 9208
+        y: 353
+      positionAbsolute:
+        x: 9208
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: deepseek-ai/DeepSeek-V3
+          provider: langgenius/siliconflow/siliconflow
+        prompt_template:
+        - id: preview-link-system
+          role: system
+          text: 根据提供的草稿ID生成预览界面链接。输出格式：http://8.148.70.18:9000/draft/preview/[草稿ID]。只输出链接，不要其他内容。
+        - id: preview-link-user
+          role: user
+          text: '草稿ID: {{#llm_draft_id_trim.text#}}'
+        selected: false
+        title: 生成预览链接
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 87
+      id: '1755000000001'
+      position:
+        x: 9540
+        y: 353
+      positionAbsolute:
+        x: 9540
+        y: 353
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "from typing import Any, Dict, Tuple\nimport ssl, urllib.request, urllib.error,\
+          \ json, uuid, mimetypes\n\nDEF_PREFIX = 'capcut/images'\nDEFAULT_REFERER\
+          \ = 'http://8.148.70.18:8080'\nDEFAULT_UA = 'Mozilla/5.0 (Windows NT 10.0;\
+          \ Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'\n\
+          \ndef _pick_file(files: Any) -> Tuple[str, str, str]:\n    \"\"\"Return\
+          \ (url, filename, content_type) if possible.\n    content_type may be empty\
+          \ if unknown.\n    \"\"\"\n    url = ''\n    filename = 'upload.bin'\n \
+          \   content_type = ''\n    if isinstance(files, dict) and isinstance(files.get('files'),\
+          \ list):\n        files = files['files']\n    if isinstance(files, list)\
+          \ and files:\n        f = files[0] if isinstance(files[0], dict) else None\n\
+          \        if isinstance(f, dict):\n            url = (f.get('url') or f.get('remote_url')\
+          \ or f.get('signed_url') or f.get('file_url') or '').strip()\n         \
+          \   name = f.get('filename') or f.get('name') or ''\n            ext = f.get('extension')\
+          \ or ''\n            mt = f.get('mime_type') or ''\n            if name:\n\
+          \                filename = name\n            elif ext:\n              \
+          \  filename = 'upload' + (ext if ext.startswith('.') else ('.' + ext))\n\
+          \            # derive mime\n            if isinstance(mt, str) and mt.strip():\n\
+          \                content_type = mt.strip()\n            elif isinstance(filename,\
+          \ str):\n                guessed = mimetypes.guess_type(filename)[0]\n \
+          \               if guessed:\n                    content_type = guessed\n\
+          \    return url, filename, content_type\n\n\ndef _http_json(api_base_url:\
+          \ str, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:\n    req =\
+          \ urllib.request.Request(\n        url=f\"{api_base_url.rstrip('/')}/{path.lstrip('/')}\"\
+          ,\n        data=json.dumps(payload).encode('utf-8'),\n        headers={'Content-Type':\
+          \ 'application/json'},\n        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _http_multipart(api_base_url:\
+          \ str, filename: str, content: bytes, content_type: str) -> Dict[str, Any]:\n\
+          \    boundary = '----DifyBoundary' + uuid.uuid4().hex\n    ct = content_type\
+          \ or 'application/octet-stream'\n    # build body\n    parts = []\n    parts.append(f\"\
+          --{boundary}\\r\\nContent-Disposition: form-data; name=\\\"prefix\\\"\\\
+          r\\n\\r\\n{DEF_PREFIX}\\r\\n\")\n    header = (\n        f\"--{boundary}\\\
+          r\\n\"\n        f\"Content-Disposition: form-data; name=\\\"file\\\"; filename=\\\
+          \"{filename}\\\"\\r\\n\"\n        f\"Content-Type: {ct}\\r\\n\\r\\n\"\n\
+          \    ).encode('utf-8')\n    tail = f\"\\r\\n--{boundary}--\\r\\n\".encode('utf-8')\n\
+          \    body = b''.join([p.encode('utf-8') for p in parts]) + header + content\
+          \ + tail\n    req = urllib.request.Request(\n        url=f\"{api_base_url.rstrip('/')}/upload_to_oss\"\
+          ,\n        data=body,\n        headers={'Content-Type': f'multipart/form-data;\
+          \ boundary={boundary}'},\n        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=60, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _try_upload(api_base_url:\
+          \ str, file_url: str, filename: str, content_type: str) -> str:\n    # download\
+          \ bytes from file_url with headers (avoid 403)\n    ctx = ssl.create_default_context()\n\
+          \    req = urllib.request.Request(file_url, method='GET', headers={'Referer':\
+          \ DEFAULT_REFERER, 'User-Agent': DEFAULT_UA})\n    try:\n        with urllib.request.urlopen(req,\
+          \ timeout=60, context=ctx) as r:\n            data = r.read()\n        \
+          \    ct = content_type or r.headers.get('Content-Type', '')\n        out\
+          \ = _http_multipart(api_base_url, filename, data, ct or content_type)\n\
+          \        return (out.get('oss_url') or '').strip()\n    except Exception:\n\
+          \        return ''\n\n\ndef _try_mirror(api_base_url: str, file_url: str)\
+          \ -> str:\n    try:\n        out = _http_json(api_base_url, 'mirror_to_oss',\
+          \ {'url': file_url, 'prefix': DEF_PREFIX})\n        return (out.get('oss_url')\
+          \ or '').strip()\n    except Exception:\n        return ''\n\n\ndef main(files:\
+          \ Any, api_base_url: str) -> Dict[str, str]:\n    url, filename, content_type\
+          \ = _pick_file(files)\n    if not isinstance(api_base_url, str) or not api_base_url.strip():\n\
+          \        return {'oss_url': url or ''}\n    if not url:\n        return\
+          \ {'oss_url': ''}\n    # 1) prefer direct upload (multipart)\n    oss =\
+          \ _try_upload(api_base_url, url, filename, content_type)\n    if not oss:\n\
+          \        # 2) fallback to mirror by url\n        oss = _try_mirror(api_base_url,\
+          \ url)\n    return {'oss_url': oss or url}\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          oss_url:
+            children: null
+            type: string
+        selected: false
+        title: 转存到OSS
+        type: code
+        variables:
+        - value_selector:
+          - tool_text2image
+          - files
+          value_type: array[file]
+          variable: files
+        - value_selector:
+          - start_1
+          - api_base_url
+          value_type: string
+          variable: api_base_url
+      height: 51
+      id: '1754999999001'
+      position:
+        x: 3955
+        y: 773
+      positionAbsolute:
+        x: 3955
+        y: 773
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "\nfrom typing import Any, Dict\nimport ssl, urllib.request, urllib.error,\
+          \ json, uuid\nfrom urllib.parse import urlparse\n\nDEF_PREFIX = 'capcut/videos'\n\
+          DEFAULT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
+          \ (KHTML, like Gecko) Chrome/124.0 Safari/537.36'\n\ndef _pick_url(files:\
+          \ Any) -> str:\n    # Prefer remote/signed URL first, then local tool url\n\
+          \    if isinstance(files, dict) and isinstance(files.get('files'), list):\n\
+          \        files = files['files']\n    if isinstance(files, list):\n     \
+          \   for f in files:\n            if isinstance(f, dict):\n             \
+          \   u = f.get('remote_url') or f.get('signed_url') or f.get('file_url')\
+          \ or f.get('url')\n                if isinstance(u, str) and u.strip():\n\
+          \                    return u.strip()\n    return ''\n\n\ndef _http_json(api_base_url:\
+          \ str, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:\n    req =\
+          \ urllib.request.Request(\n        url=f\"{api_base_url.rstrip('/')}/{path.lstrip('/')}\"\
+          ,\n        data=json.dumps(payload).encode('utf-8'),\n        headers={'Content-Type':\
+          \ 'application/json'},\n        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _http_multipart(api_base_url:\
+          \ str, filename: str, content: bytes, content_type: str) -> Dict[str, Any]:\n\
+          \    boundary = '----DifyBoundary' + uuid.uuid4().hex\n    ct = content_type\
+          \ or 'application/octet-stream'\n    parts = []\n    parts.append(f\"--{boundary}\\\
+          r\\nContent-Disposition: form-data; name=\\\"prefix\\\"\\r\\n\\r\\n{DEF_PREFIX}\\\
+          r\\n\")\n    header = (\n        f\"--{boundary}\\r\\n\"\n        f\"Content-Disposition:\
+          \ form-data; name=\\\"file\\\"; filename=\\\"{filename}\\\"\\r\\n\"\n  \
+          \      f\"Content-Type: {ct}\\r\\n\\r\\n\"\n    ).encode('utf-8')\n    tail\
+          \ = f\"\\r\\n--{boundary}--\\r\\n\".encode('utf-8')\n    body = b''.join([p.encode('utf-8')\
+          \ for p in parts]) + header + content + tail\n    req = urllib.request.Request(\n\
+          \        url=f\"{api_base_url.rstrip('/')}/upload_to_oss\",\n        data=body,\n\
+          \        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},\n\
+          \        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _download(url:\
+          \ str):\n    headers = {'User-Agent': DEFAULT_UA}\n    try:\n        p =\
+          \ urlparse(url)\n        if p.scheme in ('http','https'):\n            headers['Referer']\
+          \ = f\"{p.scheme}://{p.netloc}\"\n    except Exception:\n        pass\n\
+          \    req = urllib.request.Request(url, method='GET', headers=headers)\n\
+          \    ctx = ssl.create_default_context()\n    with urllib.request.urlopen(req,\
+          \ timeout=180, context=ctx) as r:\n        data = r.read()\n        ct =\
+          \ r.headers.get('Content-Type', '')\n        return data, ct\n\n\ndef main(video_url:\
+          \ Any, api_base_url: str) -> Dict[str, str]:\n    url = _pick_url(video_url)\
+          \ if isinstance(video_url, (dict, list)) else (video_url or '')\n    if\
+          \ not isinstance(api_base_url, str) or not api_base_url.strip():\n     \
+          \   return {'oss_url': url or ''}\n    if not url:\n        return {'oss_url':\
+          \ ''}\n    # 1) try direct upload via multipart (most robust)\n    try:\n\
+          \        data, ct = _download(url)\n        out = _http_multipart(api_base_url,\
+          \ 'video.mp4', data, ct or 'video/mp4')\n        oss = (out.get('oss_url')\
+          \ or '').strip()\n        if oss:\n            return {'oss_url': oss}\n\
+          \    except Exception:\n        pass\n    # 2) fallback to mirror_by_url\n\
+          \    try:\n        out = _http_json(api_base_url, 'mirror_to_oss', {'url':\
+          \ url, 'prefix': DEF_PREFIX})\n        oss = (out.get('oss_url') or '').strip()\n\
+          \        if oss:\n            return {'oss_url': oss}\n    except Exception:\n\
+          \        pass\n    # 3) last resort return original\n    return {'oss_url':\
+          \ url}\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          oss_url:
+            children: null
+            type: string
+        selected: false
+        title: 转存到OSS
+        type: code
+        variables:
+        - value_selector:
+          - tool_image2video
+          - files
+          value_type: array[file]
+          variable: video_url
+        - value_selector:
+          - start_1
+          - api_base_url
+          value_type: string
+          variable: api_base_url
+      height: 51
+      id: '1755050828662'
+      position:
+        x: 3955
+        y: 953
+      positionAbsolute:
+        x: 3955
+        y: 953
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: Doubao-pro-128k
+          provider: langgenius/volcengine_maas/volcengine_maas
+        prompt_template:
+        - id: f8016d82-76a9-49f8-ba0f-10c1825892d9
+          role: system
+          text: "# Role: 即梦AI文生视频结构化提示词生成器 (Jmeng AI Video Structured Prompt Generator)\n\
+            ## Background:\n- 这是一个专门为即梦AI生成视频提示词的工具\n- 将用户的视频创意转换为结构化提示词\n- 输出格式固定且简洁\n\
+            ## Core Objectives:\n- 将用户输入的视频创意转换为结构化提示词\n- 确保输出格式统一且易于使用\n- 提供丰富且具体的动态场景描述\n\
+            ## Constraints:\n1. 输出格式必须严格遵循：\n   ```\n   画面主体：[内容] 动作描述：[内容] 场景描述：[内容]\
+            \ 风格关键词：[内容] 细节修饰：[内容]\n   ```\n2. 禁止输出任何额外的文字说明或格式\n3. 各字段之间使用空格分隔\n\
+            4. 直接输出结果，不进行对话\n## Skills:\n1. 动态构图能力：\n   \n   - 准确描述主体位置\n   - 定义动作流程\n\
+            \   - 把握动态重点\n2. 场景描写能力：\n   \n   - 营造环境氛围\n   - 描述天气光线\n   - 构建空间感\n\
+            3. 风格定义能力：\n   \n   - 应用视频风格\n   - 把控色彩风格\n   - 确定渲染技术\n4. 细节补充能力：\n \
+            \  \n   - 添加动态要素\n   - 强化材质表现\n   - 突出关键特征\n## Workflow:\n1. 接收用户输入的视频创意\n\
+            2. 将创意拆解为五个维度\n3. 组合成规定格式字符串\n4. 直接输出结果\n## OutputFormat:\n```\n画面主体：[主体描述]\
+            \ 动作描述：[动作内容] 场景描述：[场景内容] 风格关键词：[风格定义] 细\n节修饰：[细节内容]\n```\n## Init:\n\
+            我已准备好接收您的视频创意，将直接输出符合格式的提示词。"
+        - id: 92148e18-80c3-453e-8337-16fdddf10b38
+          role: user
+          text: '请根据用户输入{{#start_1.prompt#}}改写符合即梦AI绘画的提示词
+
+            {{#sys.query#}}'
+        selected: false
+        title: 文生视频提示词改写LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 87
+      id: '1755081580944'
+      position:
+        x: 3291
+        y: 593
+      positionAbsolute:
+        x: 3291
+        y: 593
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The text prompt used to generate the video. Doubao will generate
+              a video based on this prompt.
+            ja_JP: The text prompt used to generate the video. Doubao will generate
+              a video based on this prompt.
+            pt_BR: The text prompt used to generate the video. Doubao will generate
+              a video based on this prompt.
+            zh_Hans: The text prompt used to generate the video. Doubao will generate
+              a video based on this prompt.
+          label:
+            en_US: Prompt
+            ja_JP: Prompt
+            pt_BR: Prompt
+            zh_Hans: Prompt
+          llm_description: This prompt text will be used to generate a video.
+          max: null
+          min: null
+          name: prompt
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: '16:9'
+          form: form
+          human_description:
+            en_US: The aspect ratio of the generated video.
+            ja_JP: The aspect ratio of the generated video.
+            pt_BR: The aspect ratio of the generated video.
+            zh_Hans: The aspect ratio of the generated video.
+          label:
+            en_US: Aspect Ratio
+            ja_JP: Aspect Ratio
+            pt_BR: Aspect Ratio
+            zh_Hans: Aspect Ratio
+          llm_description: ''
+          max: null
+          min: null
+          name: ratio
+          options:
+          - icon: ''
+            label:
+              en_US: 16:9 (Landscape)
+              ja_JP: 16:9 (Landscape)
+              pt_BR: 16:9 (Landscape)
+              zh_Hans: 16:9 (Landscape)
+            value: '16:9'
+          - icon: ''
+            label:
+              en_US: 9:16 (Portrait)
+              ja_JP: 9:16 (Portrait)
+              pt_BR: 9:16 (Portrait)
+              zh_Hans: 9:16 (Portrait)
+            value: '9:16'
+          - icon: ''
+            label:
+              en_US: 4:3 (Classic)
+              ja_JP: 4:3 (Classic)
+              pt_BR: 4:3 (Classic)
+              zh_Hans: 4:3 (Classic)
+            value: '4:3'
+          - icon: ''
+            label:
+              en_US: 1:1 (Square)
+              ja_JP: 1:1 (Square)
+              pt_BR: 1:1 (Square)
+              zh_Hans: 1:1 (Square)
+            value: '1:1'
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: '5'
+          form: form
+          human_description:
+            en_US: The duration of the generated video in seconds.
+            ja_JP: The duration of the generated video in seconds.
+            pt_BR: The duration of the generated video in seconds.
+            zh_Hans: The duration of the generated video in seconds.
+          label:
+            en_US: Duration (seconds)
+            ja_JP: Duration (seconds)
+            pt_BR: Duration (seconds)
+            zh_Hans: Duration (seconds)
+          llm_description: ''
+          max: null
+          min: null
+          name: duration
+          options:
+          - icon: ''
+            label:
+              en_US: 5 seconds
+              ja_JP: 5 seconds
+              pt_BR: 5 seconds
+              zh_Hans: 5 seconds
+            value: '5'
+          - icon: ''
+            label:
+              en_US: 10 seconds
+              ja_JP: 10 seconds
+              pt_BR: 10 seconds
+              zh_Hans: 10 seconds
+            value: '10'
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: doubao-seedance-1-0-lite-t2v-250428
+          form: form
+          human_description:
+            en_US: Model version to use for video generation.
+            ja_JP: Model version to use for video generation.
+            pt_BR: Model version to use for video generation.
+            zh_Hans: Model version to use for video generation.
+          label:
+            en_US: Model Version
+            ja_JP: Model Version
+            pt_BR: Model Version
+            zh_Hans: Model Version
+          llm_description: ''
+          max: null
+          min: null
+          name: model
+          options:
+          - icon: ''
+            label:
+              en_US: Doubao Seedance 1.0 Lite
+              ja_JP: Doubao Seedance 1.0 Lite
+              pt_BR: Doubao Seedance 1.0 Lite
+              zh_Hans: Doubao Seedance 1.0 Lite
+            value: doubao-seedance-1-0-lite-t2v-250428
+          - icon: ''
+            label:
+              en_US: Doubao Seaweed
+              ja_JP: Doubao Seaweed
+              pt_BR: Doubao Seaweed
+              zh_Hans: Doubao Seaweed
+            value: doubao-seaweed-241128
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          duration: ''
+          model: ''
+          prompt: ''
+          ratio: ''
+        provider_id: allenwriter/doubao_image/doubao
+        provider_name: allenwriter/doubao_image/doubao
+        provider_type: builtin
+        selected: false
+        title: 文生视频
+        tool_configurations:
+          duration:
+            type: constant
+            value: '5'
+          model:
+            type: constant
+            value: doubao-seedance-1-0-lite-t2v-250428
+          ratio:
+            type: constant
+            value: '16:9'
+        tool_description: Generate videos with Doubao (豆包) AI.
+        tool_label: Text to Video
+        tool_name: text2video
+        tool_node_version: '2'
+        tool_parameters:
+          prompt:
+            type: mixed
+            value: '{{#1755081580944.text#}}'
+        type: tool
+      height: 139
+      id: '1755081700532'
+      position:
+        x: 3623
+        y: 593
+      positionAbsolute:
+        x: 3623
+        y: 593
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{"video_url": "{{#17550818023030.oss_url#}}", "draft_id": "{{#llm_draft_id_trim.text#}}",
+              "start": 0, "end": 5, "target_start": 0, "track_name": "video_broll",
+              "width": {{#start_1.width#}}, "height": {{#start_1.height#}}, "material_type":
+              "video", "type": "video", "materialType": "video"}'
+          type: raw-text
+        desc: ''
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 添加AI文生视频
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_video'
+        variables: []
+      height: 140
+      id: '17550817164710'
+      position:
+        x: 4287
+        y: 593
+      positionAbsolute:
+        x: 4287
+        y: 593
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "\nfrom typing import Any, Dict\nimport ssl, urllib.request, urllib.error,\
+          \ json, uuid\nfrom urllib.parse import urlparse\n\nDEF_PREFIX = 'capcut/videos'\n\
+          DEFAULT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\
+          \ (KHTML, like Gecko) Chrome/124.0 Safari/537.36'\n\ndef _pick_url(files:\
+          \ Any) -> str:\n    # Prefer remote/signed URL first, then local tool url\n\
+          \    if isinstance(files, dict) and isinstance(files.get('files'), list):\n\
+          \        files = files['files']\n    if isinstance(files, list):\n     \
+          \   for f in files:\n            if isinstance(f, dict):\n             \
+          \   u = f.get('remote_url') or f.get('signed_url') or f.get('file_url')\
+          \ or f.get('url')\n                if isinstance(u, str) and u.strip():\n\
+          \                    return u.strip()\n    return ''\n\n\ndef _http_json(api_base_url:\
+          \ str, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:\n    req =\
+          \ urllib.request.Request(\n        url=f\"{api_base_url.rstrip('/')}/{path.lstrip('/')}\"\
+          ,\n        data=json.dumps(payload).encode('utf-8'),\n        headers={'Content-Type':\
+          \ 'application/json'},\n        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _http_multipart(api_base_url:\
+          \ str, filename: str, content: bytes, content_type: str) -> Dict[str, Any]:\n\
+          \    boundary = '----DifyBoundary' + uuid.uuid4().hex\n    ct = content_type\
+          \ or 'application/octet-stream'\n    parts = []\n    parts.append(f\"--{boundary}\\\
+          r\\nContent-Disposition: form-data; name=\\\"prefix\\\"\\r\\n\\r\\n{DEF_PREFIX}\\\
+          r\\n\")\n    header = (\n        f\"--{boundary}\\r\\n\"\n        f\"Content-Disposition:\
+          \ form-data; name=\\\"file\\\"; filename=\\\"{filename}\\\"\\r\\n\"\n  \
+          \      f\"Content-Type: {ct}\\r\\n\\r\\n\"\n    ).encode('utf-8')\n    tail\
+          \ = f\"\\r\\n--{boundary}--\\r\\n\".encode('utf-8')\n    body = b''.join([p.encode('utf-8')\
+          \ for p in parts]) + header + content + tail\n    req = urllib.request.Request(\n\
+          \        url=f\"{api_base_url.rstrip('/')}/upload_to_oss\",\n        data=body,\n\
+          \        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},\n\
+          \        method='POST',\n    )\n    ctx = ssl.create_default_context()\n\
+          \    with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:\n\
+          \        return json.loads(resp.read().decode('utf-8'))\n\n\ndef _download(url:\
+          \ str):\n    headers = {'User-Agent': DEFAULT_UA}\n    try:\n        p =\
+          \ urlparse(url)\n        if p.scheme in ('http','https'):\n            headers['Referer']\
+          \ = f\"{p.scheme}://{p.netloc}\"\n    except Exception:\n        pass\n\
+          \    req = urllib.request.Request(url, method='GET', headers=headers)\n\
+          \    ctx = ssl.create_default_context()\n    with urllib.request.urlopen(req,\
+          \ timeout=180, context=ctx) as r:\n        data = r.read()\n        ct =\
+          \ r.headers.get('Content-Type', '')\n        return data, ct\n\n\ndef main(video_url:\
+          \ Any, api_base_url: str) -> Dict[str, str]:\n    url = _pick_url(video_url)\
+          \ if isinstance(video_url, (dict, list)) else (video_url or '')\n    if\
+          \ not isinstance(api_base_url, str) or not api_base_url.strip():\n     \
+          \   return {'oss_url': url or ''}\n    if not url:\n        return {'oss_url':\
+          \ ''}\n    # 1) try direct upload via multipart (most robust)\n    try:\n\
+          \        data, ct = _download(url)\n        out = _http_multipart(api_base_url,\
+          \ 'video.mp4', data, ct or 'video/mp4')\n        oss = (out.get('oss_url')\
+          \ or '').strip()\n        if oss:\n            return {'oss_url': oss}\n\
+          \    except Exception:\n        pass\n    # 2) fallback to mirror_by_url\n\
+          \    try:\n        out = _http_json(api_base_url, 'mirror_to_oss', {'url':\
+          \ url, 'prefix': DEF_PREFIX})\n        oss = (out.get('oss_url') or '').strip()\n\
+          \        if oss:\n            return {'oss_url': oss}\n    except Exception:\n\
+          \        pass\n    # 3) last resort return original\n    return {'oss_url':\
+          \ url}\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          oss_url:
+            children: null
+            type: string
+        selected: false
+        title: 转存到OSS
+        type: code
+        variables:
+        - value_selector:
+          - '1755081700532'
+          - json
+          value_type: array[file]
+          variable: video_url
+        - value_selector:
+          - start_1
+          - api_base_url
+          value_type: string
+          variable: api_base_url
+      height: 51
+      id: '17550818023030'
+      position:
+        x: 3955
+        y: 593
+      positionAbsolute:
+        x: 3955
+        y: 593
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "from typing import Dict\ndef main(srt: str) -> Dict[str, str]:\n  \
+          \  if not isinstance(srt, str):\n        return {\"text\": \"\"}\n    lines\
+          \ = []\n    for raw in srt.splitlines():\n        t = raw.strip()\n    \
+          \    if not t or t.isdigit() or '-->' in t:\n            continue\n    \
+          \    lines.append(t)\n    text = '。'.join(lines)\n    while '。。' in text:\n\
+          \        text = text.replace('。。', '。')\n    return {'text': text}\n"
+        code_language: python3
+        outputs:
+          text:
+            children: null
+            type: string
+        selected: false
+        title: 合并SRT为旁白文本
+        type: code
+        variables:
+        - value_selector:
+          - llm_srt
+          - text
+          value_type: string
+          variable: srt
+      height: 51
+      id: code_merge_srt
+      position:
+        x: 6129
+        y: 493
+      positionAbsolute:
+        x: 6129
+        y: 493
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "import json, urllib.request, ssl\nfrom typing import Any, Dict\ndef\
+          \ main(tool_output: Any) -> Dict[str, str]:\n    try:\n        print(f'[DEBUG]\
+          \ 输入类型: {type(tool_output)}')\n        print(f'[DEBUG] 输入内容: {str(tool_output)[:200]}...')\n\
+          \        \n        # 解析TTS工具返回的JSON字符串\n        if isinstance(tool_output,\
+          \ str):\n            data = json.loads(tool_output)\n            audio_url\
+          \ = data.get(\"audio_url\", \"\")\n        elif isinstance(tool_output,\
+          \ dict):\n            audio_url = tool_output.get(\"audio_url\", \"\")\n\
+          \        else:\n            print(f'[ERROR] 输入类型不支持: {type(tool_output)}')\n\
+          \            return {\"audio_url\": \"\"}\n        \n        print(f'[DEBUG]\
+          \ 解析出的原始URL: {audio_url}')\n        \n        if not audio_url:\n      \
+          \      print('[ERROR] audio_url为空')\n            return {\"audio_url\":\
+          \ \"\"}\n        \n        # \U0001F527 智能URL处理策略\n        # 1. 如果是本地URL（已经是mp3），直接返回\n\
+          \        if 'http://8.148.70.18:3006/audio/' in audio_url and audio_url.endswith('.mp3'):\n\
+          \            print(f'[INFO] 检测到本地MP3文件URL，直接返回')\n            return {\"\
+          audio_url\": audio_url}\n        \n        # 2. 如果是OSS URL，先测试是否可访问\n  \
+          \      if 'zdaigfpt.oss-cn-wuhan-lr.aliyuncs.com' in audio_url:\n      \
+          \      print(f'[INFO] 检测到OSS URL，测试可访问性...')\n            \n           \
+          \ # 首先尝试.bin格式\n            try:\n                req = urllib.request.Request(audio_url,\
+          \ method='HEAD')\n                with urllib.request.urlopen(req, timeout=5,\
+          \ context=ssl.create_default_context()) as r:\n                    if r.status\
+          \ == 200:\n                        print(f'[SUCCESS] OSS .bin URL可访问，直接返回')\n\
+          \                        return {\"audio_url\": audio_url}\n           \
+          \ except Exception as e:\n                print(f'[WARNING] OSS .bin URL不可访问:\
+          \ {str(e)}')\n            \n            # 如果.bin不可访问，尝试.mp3格式\n        \
+          \    if '.bin?' in audio_url:\n                mp3_url = audio_url.replace('.bin?',\
+          \ '.mp3?')\n                try:\n                    req = urllib.request.Request(mp3_url,\
+          \ method='HEAD')\n                    with urllib.request.urlopen(req, timeout=5,\
+          \ context=ssl.create_default_context()) as r:\n                        if\
+          \ r.status == 200:\n                            print(f'[SUCCESS] OSS .mp3\
+          \ URL可访问，返回修复后的URL')\n                            return {\"audio_url\"\
+          : mp3_url}\n                except Exception as e:\n                   \
+          \ print(f'[WARNING] OSS .mp3 URL也不可访问: {str(e)}')\n            \n      \
+          \      # OSS都不可访问，请求TTS服务生成本地文件\n            print(f'[INFO] OSS不可访问，请求TTS服务fallback到本地文件...')\n\
+          \            try:\n                # 从原始tool_output中提取参数重新请求\n         \
+          \       if isinstance(tool_output, str):\n                    original_data\
+          \ = json.loads(tool_output)\n                else:\n                   \
+          \ original_data = tool_output\n                \n                # 构造fallback请求\n\
+          \                fallback_payload = {\n                    \"text\": \"\
+          fallback audio file\",  # 简短文本，快速生成\n                    \"voice_type\"\
+          : \"zh_male_dongfanghaoran_moon_bigtts\",\n                    \"speed_ratio\"\
+          : \"1.0\",\n                    \"audio_format\": \"mp3\",\n           \
+          \         \"sample_rate\": 24000\n                }\n                \n\
+          \                req = urllib.request.Request(\n                    'http://localhost:3006/api/v1/tts',\n\
+          \                    data=json.dumps(fallback_payload).encode('utf-8'),\n\
+          \                    headers={'Content-Type': 'application/json'},\n   \
+          \                 method='POST'\n                )\n                \n \
+          \               with urllib.request.urlopen(req, timeout=10, context=ssl.create_default_context())\
+          \ as r:\n                    if r.status == 200:\n                     \
+          \   response_data = r.read().decode('utf-8')\n                        fallback_data\
+          \ = json.loads(response_data)\n                        fallback_url = fallback_data.get('audio_url',\
+          \ '')\n                        \n                        if fallback_url\
+          \ and 'http://8.148.70.18:3006/audio/' in fallback_url:\n              \
+          \              print(f'[SUCCESS] 获取到fallback本地文件URL: {fallback_url}')\n\
+          \                            return {\"audio_url\": fallback_url}\n    \
+          \                    \n            except Exception as e:\n            \
+          \    print(f'[ERROR] fallback请求失败: {str(e)}')\n        \n        # 兜底：返回原始URL\n\
+          \        print('[WARNING] 所有策略都失败，返回原始URL')\n        return {\"audio_url\"\
+          : audio_url}\n        \n    except Exception as e:\n        print(f'[ERROR]\
+          \ 处理异常: {str(e)}')\n        return {\"audio_url\": \"\"}\n"
+        code_language: python3
+        outputs:
+          audio_url:
+            children: null
+            type: string
+        selected: false
+        title: 提取旁白URL
+        type: code
+        variables:
+        - value_selector:
+          - '1755396094728'
+          - text
+          value_type: string
+          variable: tool_output
+      height: 51
+      id: code_extract_voice_url
+      position:
+        x: 6793
+        y: 493
+      positionAbsolute:
+        x: 6793
+        y: 493
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n  \"audio_url\": \"{{#code_extract_voice_url.audio_url#}}\"\
+              ,\n  \"draft_id\": \"{{#llm_draft_id_trim.text#}}\",\n  \"start\": 0,\n\
+              \  \"end\": {{#start_1.duration#}},\n  \"volume\": 1.0,\n  \"track_name\"\
+              : \"audio_voice\",\n  \"format\": \"mp3\",\n  \"content_type\": \"audio/mp3\"\
+              ,\n  \"material_type\": \"audio\",\n  \"type\": \"audio\",\n  \"materialType\"\
+              : \"audio\"\n}\n"
+          type: raw-text
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 200
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 30
+          max_read_timeout: 120
+          max_write_timeout: 60
+        title: 添加旁白音轨
+        type: http-request
+        url: '{{#start_1.api_base_url#}}/add_audio'
+      height: 140
+      id: http_add_voice_audio
+      position:
+        x: 7125
+        y: 493
+      positionAbsolute:
+        x: 7125
+        y: 493
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        answer: '❌ **图生视频配置错误**
+
+
+          📋 **问题说明**：您选择了"图生视频"模式，但未上传参考图片。
+
+
+          🔧 **解决方案**：
+
+          1. 请上传一张参考图片到"图生视频参考图片"字段
+
+          2. 或者改选"文生图像"或"文生视频"模式
+
+
+          💡 **提示**：图生视频可以根据您的图片生成动态视频效果'
+        desc: ''
+        selected: false
+        title: 图生视频错误提示
+        type: answer
+        variables: []
+      height: 211
+      id: '1755251376750'
+      position:
+        x: 3955
+        y: 1070
+      positionAbsolute:
+        x: 3955
+        y: 1070
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 要合成的文本内容
+          label:
+            zh_Hans: text
+          llm_description: 要合成的文本内容
+          max: null
+          min: null
+          name: text
+          options: []
+          placeholder:
+            zh_Hans: 要合成的文本内容
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 音色类型
+          label:
+            zh_Hans: voice_type
+          llm_description: 音色类型
+          max: null
+          min: null
+          name: voice_type
+          options: []
+          placeholder:
+            zh_Hans: 音色类型
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 1
+          form: llm
+          human_description:
+            zh_Hans: 语速比例
+          label:
+            zh_Hans: speed_ratio
+          llm_description: 语速比例
+          max: null
+          min: null
+          name: speed_ratio
+          options: []
+          placeholder:
+            zh_Hans: 语速比例
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: mp3
+          form: llm
+          human_description:
+            zh_Hans: 音频格式
+          label:
+            zh_Hans: audio_format
+          llm_description: 音频格式
+          max: null
+          min: null
+          name: audio_format
+          options: []
+          placeholder:
+            zh_Hans: 音频格式
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 24000
+          form: llm
+          human_description:
+            zh_Hans: 采样率
+          label:
+            zh_Hans: sample_rate
+          llm_description: 采样率
+          max: null
+          min: null
+          name: sample_rate
+          options: []
+          placeholder:
+            zh_Hans: 采样率
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          audio_format: ''
+          sample_rate: ''
+          speed_ratio: ''
+          text: ''
+          voice_type: ''
+        provider_id: e16b4054-17e0-4eeb-87e4-4fd994a92b6a
+        provider_name: tts_gateway3006
+        provider_type: api
+        selected: false
+        title: tts_synthesize
+        tool_configurations: {}
+        tool_description: 输入文本和音色参数，返回合成的音频URL
+        tool_label: tts_synthesize
+        tool_name: tts_synthesize
+        tool_node_version: '2'
+        tool_parameters:
+          audio_format:
+            type: mixed
+            value: mp3
+          sample_rate:
+            type: constant
+            value: 24000
+          speed_ratio:
+            type: variable
+            value:
+            - start_1
+            - tts_speed
+          text:
+            type: mixed
+            value: '{{#code_merge_srt.text#}}'
+          voice_type:
+            type: variable
+            value:
+            - start_1
+            - tts_voice
+        type: tool
+      height: 51
+      id: '1755396094728'
+      position:
+        x: 6461
+        y: 493
+      positionAbsolute:
+        x: 6461
+        y: 493
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: -969.9999999999991
+      y: -463.0000000000002
+      zoom: 0.7
+  rag_pipeline_variables: []

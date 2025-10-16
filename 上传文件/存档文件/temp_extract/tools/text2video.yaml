@@ -1,0 +1,55 @@
+# 工具描述
+description:
+  human:
+    en_US: Generate high-quality videos from text prompts using 302.AI Sora-2 AI model. Support various video styles and detailed scene descriptions.
+    zh_Hans: 使用 302.AI Sora-2 AI 模型从文本提示生成高质量视频。支持各种视频风格和详细场景描述。
+  llm: This tool generates high-quality videos from text descriptions using 302.AI Sora-2 model. It supports detailed prompts and can create various styles of videos with real-time progress tracking.
+
+# 扩展配置
+extra:
+  python:
+    source: tools/text2video.py
+
+# 身份信息
+identity:
+  author: wwwzhouhui
+  icon: icon.svg
+  label:
+    en_US: Text to Video
+    zh_Hans: 文生视频
+  name: text2video
+
+# 参数配置
+parameters:
+- form: llm
+  human_description:
+    en_US: The text prompt to generate video from. Describe the scene, actions, and visual details you want to see in the video. For example "A golden retriever playing in a sunny park with children running around".
+    zh_Hans: 用于生成视频的文本提示。详细描述您希望在视频中看到的场景、动作和视觉细节。例如"一只金毛犬在阳光明媚的公园里玩耍,周围有孩子们在奔跑"。
+  label:
+    en_US: Prompt
+    zh_Hans: 提示词
+  llm_description: Text prompt that describes the desired video content in detail. The more specific and descriptive about scenes, actions, camera movements, lighting, and atmosphere, the better the generated video quality.
+  name: prompt
+  required: true
+  type: string
+
+- form: form
+  human_description:
+    en_US: Video orientation format. Landscape (16:9) is suitable for computer viewing, portrait for mobile devices.
+    zh_Hans: 视频方向格式。横屏(16:9)适合电脑观看,竖屏适合移动设备。
+  label:
+    en_US: Orientation
+    zh_Hans: 视频方向
+  name: orientation
+  type: select
+  options:
+  - label:
+      en_US: Landscape (16:9)
+      zh_Hans: 横屏 (16:9)
+    value: "landscape"
+  - label:
+      en_US: Portrait (9:16)
+      zh_Hans: 竖屏 (9:16)
+    value: "portrait"
+  default: "landscape"
+  required: false
